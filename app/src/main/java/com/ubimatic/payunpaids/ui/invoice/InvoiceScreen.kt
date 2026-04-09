@@ -8,24 +8,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -35,10 +31,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ubimatic.payunpaids.ui.alldone.AllDoneScreen
+import com.ubimatic.payunpaids.ui.theme.Amber
+import com.ubimatic.payunpaids.ui.theme.AmberDark
+import com.ubimatic.payunpaids.ui.theme.DarkBorder
+import com.ubimatic.payunpaids.ui.theme.DarkBorderLight
+import com.ubimatic.payunpaids.ui.theme.DarkSurface
+import com.ubimatic.payunpaids.ui.theme.TextPrimary
+import com.ubimatic.payunpaids.ui.theme.TextSecondary
+import com.ubimatic.payunpaids.ui.theme.WarningBg
+import com.ubimatic.payunpaids.ui.theme.WarningText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,76 +84,106 @@ fun InvoiceScreen(
                                 text = invoice.partnerName,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimary,
+                                ),
                             )
-                            Row {
-                                Text(
-                                    text = "${state.currentIndex + 1} / ${state.invoices.size}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                                Text(
-                                    text = "  •  ${String.format("%.2f EUR", invoice.amountResidual)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
+                            Text(
+                                text = "Invoice ${state.currentIndex + 1} of ${state.invoices.size} \u00B7 \u20AC${String.format("%.2f", invoice.amountResidual)}",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = TextSecondary,
+                                    fontSize = 11.sp,
+                                ),
+                            )
                         }
                     } else {
-                        Text("PayUnpaids")
+                        Text("PayUnpaids", color = TextPrimary)
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    IconButton(
+                        onClick = onNavigateToSettings,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = DarkSurface,
+                        ),
+                    ) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = TextSecondary,
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
             )
         },
         bottomBar = {
             if (invoice != null && !state.isLoading) {
-                BottomAppBar {
-                    Row(
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkSurface)
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    // Prev
+                    TextButton(
+                        onClick = viewModel::goToPrevious,
+                        enabled = state.currentIndex > 0,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
+                            .weight(1f)
+                            .background(DarkBorder, RoundedCornerShape(8.dp)),
                     ) {
-                        Button(
-                            onClick = viewModel::goToPrevious,
-                            enabled = state.currentIndex > 0,
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                            Text(" Prev")
-                        }
+                        Text(
+                            "\u2190 Prev",
+                            color = if (state.currentIndex > 0) TextSecondary else TextSecondary.copy(alpha = 0.3f),
+                            fontSize = 12.sp,
+                        )
+                    }
 
-                        Button(
-                            onClick = viewModel::markCurrentAsPaid,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.tertiary,
-                            ),
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = null)
-                            Text(" Paid")
-                        }
+                    // Paid
+                    TextButton(
+                        onClick = viewModel::markCurrentAsPaid,
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(DarkBorder, RoundedCornerShape(8.dp)),
+                    ) {
+                        Text("\u2713 Paid", color = TextPrimary, fontSize = 12.sp)
+                    }
 
-                        if (invoice.hasIban) {
-                            Button(onClick = viewModel::showPaySheet) {
-                                Icon(Icons.Default.Payment, contentDescription = null)
-                                Text(" Pay")
-                            }
-                        }
-
-                        Button(
-                            onClick = viewModel::goToNext,
-                            enabled = state.currentIndex < state.invoices.size - 1,
+                    // Pay
+                    if (invoice.hasIban) {
+                        TextButton(
+                            onClick = viewModel::showPaySheet,
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Amber, RoundedCornerShape(8.dp)),
                         ) {
-                            Text("Next ")
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                            Text(
+                                "Pay \u25BE",
+                                color = AmberDark,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
                         }
+                    }
+
+                    // Next
+                    TextButton(
+                        onClick = viewModel::goToNext,
+                        enabled = state.currentIndex < state.invoices.size - 1,
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(DarkBorder, RoundedCornerShape(8.dp)),
+                    ) {
+                        Text(
+                            "Next \u2192",
+                            color = if (state.currentIndex < state.invoices.size - 1) TextSecondary else TextSecondary.copy(alpha = 0.3f),
+                            fontSize = 12.sp,
+                        )
                     }
                 }
             }
@@ -159,43 +196,42 @@ fun InvoiceScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = Amber)
                     }
                 }
 
                 invoice != null -> {
                     Column {
-                        // Warning banners
+                        // Warning: no structured communication
                         if (!invoice.hasStructuredCommunication) {
-                            Box(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.errorContainer)
-                                    .padding(12.dp),
+                                    .background(WarningBg)
+                                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = "No structured communication — verify manually in banking app",
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    text = "\u26A0  No structured communication \u2014 verify before paying",
+                                    color = WarningText,
+                                    fontSize = 12.sp,
                                 )
                             }
                         }
 
+                        // Warning: no IBAN
                         if (!invoice.hasIban) {
-                            Box(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.error)
-                                    .padding(12.dp),
+                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
+                                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = "No IBAN available — cannot pay electronically",
-                                    color = MaterialTheme.colorScheme.onError,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth(),
+                                    text = "\u26A0  No IBAN available \u2014 cannot pay electronically",
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 12.sp,
                                 )
                             }
                         }
@@ -203,6 +239,7 @@ fun InvoiceScreen(
                         // Content area
                         if (invoice.pdfData != null) {
                             InvoicePdfScreen(
+                                invoiceId = invoice.id,
                                 pdfData = invoice.pdfData,
                                 modifier = Modifier.weight(1f),
                             )
@@ -221,6 +258,7 @@ fun InvoiceScreen(
     // Payment bottom sheet
     if (state.showPaySheet) {
         PaymentBottomSheet(
+            amount = invoice?.amountResidual ?: 0.0,
             onBankSelected = viewModel::payWithBank,
             onDismiss = viewModel::hidePaySheet,
         )

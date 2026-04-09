@@ -21,22 +21,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.io.File
 
 @Composable
 fun InvoicePdfScreen(
+    invoiceId: Int,
     pdfData: ByteArray,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val pdfFile = remember(pdfData) {
-        File(context.cacheDir, "current_invoice.pdf").apply {
+
+    // Use invoice ID in filename to avoid stale cache
+    val pdfFile = remember(invoiceId) {
+        File(context.cacheDir, "invoice_$invoiceId.pdf").apply {
             writeBytes(pdfData)
         }
     }
 
-    val pdfRenderer = remember(pdfFile) {
+    val pdfRenderer = remember(invoiceId) {
         try {
             val fd = ParcelFileDescriptor.open(pdfFile, ParcelFileDescriptor.MODE_READ_ONLY)
             PdfRenderer(fd)
@@ -45,9 +49,11 @@ fun InvoicePdfScreen(
         }
     }
 
-    DisposableEffect(pdfRenderer) {
+    DisposableEffect(invoiceId) {
         onDispose {
             pdfRenderer?.close()
+            // Clean up temp file
+            pdfFile.delete()
         }
     }
 
@@ -66,7 +72,7 @@ fun InvoicePdfScreen(
             state = pagerState,
             modifier = Modifier.weight(1f),
         ) { pageIndex ->
-            val bitmap = remember(pageIndex) {
+            val bitmap = remember(invoiceId, pageIndex) {
                 try {
                     val page = pdfRenderer.openPage(pageIndex)
                     val bmp = Bitmap.createBitmap(
@@ -101,7 +107,7 @@ fun InvoicePdfScreen(
                     .padding(4.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
             )
         }
     }

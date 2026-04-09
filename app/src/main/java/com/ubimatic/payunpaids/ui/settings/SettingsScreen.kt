@@ -1,5 +1,6 @@
 package com.ubimatic.payunpaids.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,12 +10,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,10 +25,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,9 +39,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ubimatic.payunpaids.ui.theme.Amber
+import com.ubimatic.payunpaids.ui.theme.AmberDark
+import com.ubimatic.payunpaids.ui.theme.DarkBorder
+import com.ubimatic.payunpaids.ui.theme.DarkSurface
+import com.ubimatic.payunpaids.ui.theme.Green
+import com.ubimatic.payunpaids.ui.theme.TextMuted
+import com.ubimatic.payunpaids.ui.theme.TextPrimary
+import com.ubimatic.payunpaids.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,18 +71,39 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = { helpDialog = null }) { Text("OK") }
             },
+            containerColor = DarkSurface,
         )
+    }
+
+    // Derive database from URL
+    val database = remember(state.url) {
+        try {
+            val host = android.net.Uri.parse(state.url.trimEnd('/')).host ?: ""
+            host.substringBefore(".")
+        } catch (e: Exception) { "" }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                title = {
+                    Column {
+                        Text("Settings", color = TextPrimary)
+                        Text(
+                            "First-time setup",
+                            fontSize = 11.sp,
+                            color = TextSecondary,
+                        )
                     }
                 },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextSecondary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
             )
         },
     ) { padding ->
@@ -74,44 +111,77 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 14.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
+            FieldLabel("Odoo URL")
             FieldWithHelp(
                 value = state.url,
                 onValueChange = viewModel::updateUrl,
-                label = "Odoo URL",
                 placeholder = "https://mycompany.odoo.com",
                 helpKey = "url",
                 onHelp = { helpDialog = it },
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            // Derived database field
+            FieldLabel("Database", suffix = "extracted automatically")
+            Text(
+                text = database.ifBlank { "\u2014" },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                fontSize = 13.sp,
+                color = TextMuted,
+                fontFamily = FontFamily.Monospace,
+            )
 
+            FieldLabel("Username")
             FieldWithHelp(
                 value = state.username,
                 onValueChange = viewModel::updateUsername,
-                label = "Username (email)",
-                placeholder = "user@example.com",
+                placeholder = "user@company.com",
                 helpKey = "username",
                 onHelp = { helpDialog = it },
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
+            FieldLabel("Password / API Key")
             FieldWithHelp(
                 value = state.apiKey,
                 onValueChange = viewModel::updateApiKey,
-                label = "Password",
                 placeholder = "",
                 helpKey = "password",
                 onHelp = { helpDialog = it },
                 isPassword = true,
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Connection test result
+            state.testResult?.let { result ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkSurface, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (state.testSuccess) "\u2022" else "\u2022",
+                        color = if (state.testSuccess) Green else MaterialTheme.colorScheme.error,
+                        fontSize = 20.sp,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text(
+                        text = result,
+                        fontSize = 12.sp,
+                        color = if (state.testSuccess) Green else MaterialTheme.colorScheme.error,
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+            }
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
@@ -120,10 +190,9 @@ fun SettingsScreen(
                 ) {
                     if (state.isTesting) {
                         CircularProgressIndicator(
-                            modifier = Modifier
-                                .height(18.dp)
-                                .width(18.dp),
+                            modifier = Modifier.height(18.dp).width(18.dp),
                             strokeWidth = 2.dp,
+                            color = Amber,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
@@ -131,28 +200,51 @@ fun SettingsScreen(
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
+            }
 
-                Button(onClick = {
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Save button (amber, full width)
+            Button(
+                onClick = {
                     viewModel.save()
                     onBack()
-                }) {
-                    Text("Save")
-                }
-            }
-
-            state.testResult?.let { result ->
-                Spacer(modifier = Modifier.height(12.dp))
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Amber,
+                    contentColor = AmberDark,
+                ),
+                shape = RoundedCornerShape(10.dp),
+            ) {
                 Text(
-                    text = result,
-                    color = if (state.testSuccess) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    "Save & continue",
+                    fontSize = 14.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                    modifier = Modifier.padding(vertical = 4.dp),
                 )
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
+        }
+    }
+}
+
+@Composable
+private fun FieldLabel(label: String, suffix: String? = null) {
+    Row(modifier = Modifier.padding(top = 12.dp)) {
+        Text(
+            text = label.uppercase(),
+            fontSize = 11.sp,
+            color = TextMuted,
+            letterSpacing = 0.7.sp,
+        )
+        if (suffix != null) {
+            Text(
+                text = " \u00B7 $suffix",
+                fontSize = 10.sp,
+                color = Amber,
+            )
         }
     }
 }
@@ -161,7 +253,6 @@ fun SettingsScreen(
 private fun FieldWithHelp(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
     placeholder: String,
     helpKey: String,
     onHelp: (String) -> Unit,
@@ -170,20 +261,29 @@ private fun FieldWithHelp(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
-        placeholder = { Text(placeholder) },
-        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text(placeholder, color = TextMuted) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 5.dp),
         singleLine = true,
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
         trailingIcon = {
             IconButton(onClick = { onHelp(helpKey) }) {
                 Icon(
                     Icons.AutoMirrored.Filled.HelpOutline,
                     contentDescription = "Help",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = TextMuted,
                 )
             }
         },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Amber,
+            unfocusedBorderColor = DarkBorder,
+            focusedContainerColor = DarkSurface,
+            unfocusedContainerColor = DarkSurface,
+            cursorColor = Amber,
+        ),
+        shape = RoundedCornerShape(8.dp),
     )
 }
 
@@ -202,7 +302,7 @@ private val helpTopics = mapOf(
         "It may differ from your personal email address."
     ),
     "password" to (
-        "Password" to
+        "Password / API Key" to
         "For Odoo Online instances (*.odoo.com), you need to set a local password:\n\n" +
         "1. Log into Odoo as an administrator\n" +
         "2. Go to Settings \u2192 Users & Companies \u2192 Users\n" +
