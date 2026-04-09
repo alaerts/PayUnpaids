@@ -25,11 +25,12 @@
         </intent>
         <!-- Package names for launch fallback (including variants) -->
         <package android:name="com.ing.banking" />
-        <package android:name="com.ing.mobile.banking.android.activity" />
+        <package android:name="com.bnpp.easybanking" />
         <package android:name="com.bnpparibasfortis.easybanking" />
-        <package android:name="be.bnpparibasfortis.easybanking" />
+        <package android:name="com.kbc.mobile.android.phone" />
         <package android:name="com.kbc.mobilebanking" />
         <package android:name="be.belfius.directmobile" />
+        <package android:name="be.keytradebank.phone" />
         <package android:name="com.keytrade.mobile" />
     </queries>
 
