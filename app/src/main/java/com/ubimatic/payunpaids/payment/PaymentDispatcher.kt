@@ -5,12 +5,15 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import com.ubimatic.payunpaids.domain.model.Bank
 import com.ubimatic.payunpaids.domain.model.Invoice
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val TAG = "PaymentDispatcher"
 
 @Singleton
 class PaymentDispatcher @Inject constructor(
@@ -36,15 +39,27 @@ class PaymentDispatcher @Inject constructor(
             communication = invoice.paymentReference,
         ) ?: return false
 
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriString)).apply {
+        Log.d(TAG, "Launching deep link: $uriString")
+
+        val uri = Uri.parse(uriString)
+        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
+
+        // Check if any app can handle this intent
+        val canResolve = intent.resolveActivity(context.packageManager) != null
+        Log.d(TAG, "Can resolve intent: $canResolve")
 
         return try {
             context.startActivity(intent)
             true
         } catch (e: Exception) {
-            Toast.makeText(context, "${bank.displayName} app not found", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "Failed to launch ${bank.displayName}: ${e.message}")
+            Toast.makeText(
+                context,
+                "${bank.displayName} app not found. Is it installed?",
+                Toast.LENGTH_LONG,
+            ).show()
             false
         }
     }

@@ -4,6 +4,27 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Declare banking app schemes for Android 11+ package visibility -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="ing-homebank" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="bnpparibasfortis" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="kbc-mobile" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="belfius" />
+        </intent>
+        <package android:name="com.keytrade.mobile" />
+    </queries>
+
     <application
         android:name=".PayUnpaidsApp"
         android:allowBackup="true"

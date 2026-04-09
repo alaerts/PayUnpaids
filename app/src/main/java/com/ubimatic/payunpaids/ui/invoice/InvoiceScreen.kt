@@ -135,17 +135,12 @@ fun InvoiceScreen(
                 ) {
                     // Prev
                     TextButton(
-                        onClick = viewModel::goToPrevious,
-                        enabled = state.currentIndex > 0,
+                        onClick = { if (state.currentIndex > 0) viewModel.goToPrevious() },
                         modifier = Modifier
                             .weight(1f)
                             .background(DarkBorder, RoundedCornerShape(8.dp)),
                     ) {
-                        Text(
-                            "\u2190 Prev",
-                            color = if (state.currentIndex > 0) TextSecondary else TextSecondary.copy(alpha = 0.3f),
-                            fontSize = 12.sp,
-                        )
+                        Text("\u2190 Prev", color = TextSecondary, fontSize = 12.sp)
                     }
 
                     // Paid
@@ -177,17 +172,12 @@ fun InvoiceScreen(
 
                     // Next
                     TextButton(
-                        onClick = viewModel::goToNext,
-                        enabled = state.currentIndex < state.invoices.size - 1,
+                        onClick = { if (state.currentIndex < state.invoices.size - 1) viewModel.goToNext() },
                         modifier = Modifier
                             .weight(1f)
                             .background(DarkBorder, RoundedCornerShape(8.dp)),
                     ) {
-                        Text(
-                            "Next \u2192",
-                            color = if (state.currentIndex < state.invoices.size - 1) TextSecondary else TextSecondary.copy(alpha = 0.3f),
-                            fontSize = 12.sp,
-                        )
+                        Text("Next \u2192", color = TextSecondary, fontSize = 12.sp)
                     }
                 }
             }

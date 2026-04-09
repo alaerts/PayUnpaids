@@ -39,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -73,14 +72,6 @@ fun SettingsScreen(
             },
             containerColor = DarkSurface,
         )
-    }
-
-    // Derive database from URL
-    val database = remember(state.url) {
-        try {
-            val host = android.net.Uri.parse(state.url.trimEnd('/')).host ?: ""
-            host.substringBefore(".")
-        } catch (e: Exception) { "" }
     }
 
     Scaffold(
@@ -123,19 +114,6 @@ fun SettingsScreen(
                 placeholder = "https://mycompany.odoo.com",
                 helpKey = "url",
                 onHelp = { helpDialog = it },
-            )
-
-            // Derived database field
-            FieldLabel("Database", suffix = "extracted automatically")
-            Text(
-                text = database.ifBlank { "\u2014" },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                fontSize = 13.sp,
-                color = TextMuted,
-                fontFamily = FontFamily.Monospace,
             )
 
             FieldLabel("Username")
@@ -231,22 +209,14 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun FieldLabel(label: String, suffix: String? = null) {
-    Row(modifier = Modifier.padding(top = 12.dp)) {
-        Text(
-            text = label.uppercase(),
-            fontSize = 11.sp,
-            color = TextMuted,
-            letterSpacing = 0.7.sp,
-        )
-        if (suffix != null) {
-            Text(
-                text = " \u00B7 $suffix",
-                fontSize = 10.sp,
-                color = Amber,
-            )
-        }
-    }
+private fun FieldLabel(label: String) {
+    Text(
+        text = label.uppercase(),
+        fontSize = 11.sp,
+        color = TextPrimary,
+        letterSpacing = 0.7.sp,
+        modifier = Modifier.padding(top = 12.dp),
+    )
 }
 
 @Composable

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0] - 2026-04-09
+
+### Fixed
+- **Deep links**: Added `<queries>` declarations in AndroidManifest for banking app URI schemes (required on Android 11+). Added logging for deep link debugging.
+- **Prev/Next buttons**: Removed `enabled` flag that was causing Material3 to gray out the buttons. Buttons now always look active; boundary checks are handled in click handlers.
+- **Settings labels**: Changed label color from gray (`TextMuted`) to readable white (`TextPrimary`).
+
+### Removed
+- **Database field**: Removed the derived database display from the Settings screen — it's extracted automatically and was unnecessary UI clutter.
+
 ## [0.3.0] - 2026-04-09
 
 ### Fixed
