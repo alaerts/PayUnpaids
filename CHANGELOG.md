@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0] - 2026-04-09
+
+### Added
+- **Bank account selection**: When marking as paid and multiple bank journals exist in Odoo, a dialog lets you choose which account (company vs personal) the payment was made from. The selected journal is passed to Odoo's payment wizard.
+- **Hello Bank support**: Added `be.bnpparibasfortis.easybanking` as alternate package name for BNP Paribas Fortis (Hello Bank variant). Each bank now carries a list of package names to try.
+
+### Fixed
+- **Payment state**: Added `group_payment: false` to payment wizard to improve reconciliation. Note: "in payment" is Odoo's standard state for registered payments awaiting bank statement reconciliation.
+- **Prev/Next buttons**: Replaced `TextButton` (which overrides text colors) with custom `ActionButton` using `Box` + `clickable`. Buttons now display with proper white text, never grayed out.
+
+### Changed
+- `Bank` enum field `packageName` renamed to `packageNames` (list), supporting multiple package name variants per bank.
+
 ## [0.5.0] - 2026-04-09
 
 ### Changed

@@ -23,6 +23,9 @@ data class InvoiceUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val showPaySheet: Boolean = false,
+    val showJournalPicker: Boolean = false,
+    val journals: List<Pair<Int, String>> = emptyList(),
+    val selectedJournalId: Int? = null,
     val hasCredentials: Boolean = true,
     val pendingPayment: Boolean = false,
     val stats: SessionStats = SessionStats(),
@@ -73,6 +76,7 @@ class InvoiceViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val (invoices, autoPayCount) = syncRepository.sync()
+                val journals = try { syncRepository.fetchJournals() } catch (_: Exception) { emptyList() }
                 _uiState.update {
                     it.copy(
                         invoices = invoices,
@@ -80,6 +84,8 @@ class InvoiceViewModel @Inject constructor(
                         currentIndex = 0,
                         isLoading = false,
                         stats = SessionStats(autoPaid = autoPayCount),
+                        journals = journals,
+                        selectedJournalId = journals.firstOrNull()?.first,
                     )
                 }
             } catch (e: Exception) {
@@ -113,7 +119,6 @@ class InvoiceViewModel @Inject constructor(
         val isPaid = invoice.id in _uiState.value.paidIds
 
         if (isPaid) {
-            // Undo: remove from local paid set (Odoo payment may already be registered)
             _uiState.update { state ->
                 state.copy(
                     paidIds = state.paidIds - invoice.id,
@@ -123,20 +128,38 @@ class InvoiceViewModel @Inject constructor(
                 )
             }
         } else {
-            // Mark as paid locally and in Odoo
-            _uiState.update { state ->
-                state.copy(
-                    paidIds = state.paidIds + invoice.id,
-                    stats = state.stats.copy(markedManually = state.stats.markedManually + 1),
-                )
+            // Show journal picker if multiple journals, otherwise mark directly
+            val journals = _uiState.value.journals
+            if (journals.size > 1) {
+                _uiState.update { it.copy(showJournalPicker = true) }
+            } else {
+                doMarkPaid(invoice.id, journals.firstOrNull()?.first)
             }
-            // Register payment in Odoo (fire and forget — undo only reverts locally)
-            viewModelScope.launch {
-                try {
-                    syncRepository.markAsPaid(invoice.id)
-                } catch (e: Exception) {
-                    _uiState.update { it.copy(error = "Odoo: ${e.message}") }
-                }
+        }
+    }
+
+    fun selectJournalAndPay(journalId: Int) {
+        _uiState.update { it.copy(showJournalPicker = false, selectedJournalId = journalId) }
+        val invoice = currentInvoice ?: return
+        doMarkPaid(invoice.id, journalId)
+    }
+
+    fun hideJournalPicker() {
+        _uiState.update { it.copy(showJournalPicker = false) }
+    }
+
+    private fun doMarkPaid(invoiceId: Int, journalId: Int?) {
+        _uiState.update { state ->
+            state.copy(
+                paidIds = state.paidIds + invoiceId,
+                stats = state.stats.copy(markedManually = state.stats.markedManually + 1),
+            )
+        }
+        viewModelScope.launch {
+            try {
+                syncRepository.markAsPaid(invoiceId, journalId)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Odoo: ${e.message}") }
             }
         }
     }
@@ -160,17 +183,15 @@ class InvoiceViewModel @Inject constructor(
         _uiState.update { it.copy(pendingPayment = false) }
 
         val invoice = currentInvoice ?: return
-        // Mark as paid locally
         _uiState.update { state ->
             state.copy(
                 paidIds = state.paidIds + invoice.id,
                 stats = state.stats.copy(paidViaBank = state.stats.paidViaBank + 1),
             )
         }
-        // Register in Odoo
         viewModelScope.launch {
             try {
-                syncRepository.markAsPaid(invoice.id)
+                syncRepository.markAsPaid(invoice.id, _uiState.value.selectedJournalId)
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Odoo: ${e.message}") }
             }

@@ -1,6 +1,7 @@
 package com.ubimatic.payunpaids.ui.invoice
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -137,59 +138,44 @@ fun InvoiceScreen(
                     horizontalArrangement = Arrangement.spacedBy(7.dp),
                 ) {
                     // Prev
-                    TextButton(
+                    ActionButton(
+                        text = "\u2190 Prev",
+                        color = TextPrimary,
+                        bg = DarkBorder,
                         onClick = { if (state.currentIndex > 0) viewModel.goToPrevious() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(DarkBorder, RoundedCornerShape(8.dp)),
-                    ) {
-                        Text("\u2190 Prev", color = TextSecondary, fontSize = 12.sp)
-                    }
+                        modifier = Modifier.weight(1f),
+                    )
 
                     // Paid / Unpaid toggle
                     val isPaid = invoice.id in state.paidIds
-                    TextButton(
+                    ActionButton(
+                        text = if (isPaid) "\u2713 Paid" else "Paid",
+                        color = if (isPaid) AmberDark else TextPrimary,
+                        bg = if (isPaid) Green else DarkBorder,
                         onClick = viewModel::togglePaid,
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                if (isPaid) Green else DarkBorder,
-                                RoundedCornerShape(8.dp),
-                            ),
-                    ) {
-                        Text(
-                            if (isPaid) "\u2713 Paid" else "\u2713 Paid",
-                            color = if (isPaid) AmberDark else TextPrimary,
-                            fontSize = 12.sp,
-                        )
-                    }
+                        modifier = Modifier.weight(1f),
+                    )
 
                     // Pay (hide if already paid)
                     if (invoice.hasIban && !isPaid) {
-                        TextButton(
+                        ActionButton(
+                            text = "Pay \u25BE",
+                            color = AmberDark,
+                            bg = Amber,
                             onClick = viewModel::showPaySheet,
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(Amber, RoundedCornerShape(8.dp)),
-                        ) {
-                            Text(
-                                "Pay \u25BE",
-                                color = AmberDark,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
+                            modifier = Modifier.weight(1f),
+                            bold = true,
+                        )
                     }
 
                     // Next
-                    TextButton(
+                    ActionButton(
+                        text = "Next \u2192",
+                        color = TextPrimary,
+                        bg = DarkBorder,
                         onClick = { if (state.currentIndex < state.invoices.size - 1) viewModel.goToNext() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(DarkBorder, RoundedCornerShape(8.dp)),
-                    ) {
-                        Text("Next \u2192", color = TextSecondary, fontSize = 12.sp)
-                    }
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         },
@@ -285,6 +271,53 @@ fun InvoiceScreen(
             amount = invoice?.amountResidual ?: 0.0,
             onBankSelected = viewModel::payWithBank,
             onDismiss = viewModel::hidePaySheet,
+        )
+    }
+
+    // Journal picker dialog (shown when multiple bank journals exist)
+    if (state.showJournalPicker) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = viewModel::hideJournalPicker,
+            title = { Text("Pay from which account?", color = TextPrimary) },
+            text = {
+                Column {
+                    state.journals.forEach { (id, name) ->
+                        TextButton(
+                            onClick = { viewModel.selectJournalAndPay(id) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(name, color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            containerColor = DarkSurface,
+        )
+    }
+}
+
+@Composable
+private fun ActionButton(
+    text: String,
+    color: androidx.compose.ui.graphics.Color,
+    bg: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    bold: Boolean = false,
+) {
+    Box(
+        modifier = modifier
+            .background(bg, RoundedCornerShape(8.dp))
+            .then(Modifier.clickable(onClick = onClick))
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = color,
+            fontSize = 12.sp,
+            fontWeight = if (bold) FontWeight.Medium else FontWeight.Normal,
         )
     }
 }

@@ -73,20 +73,23 @@ class PaymentDispatcher @Inject constructor(
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("Payment details", payload))
 
-        // Try to open the banking app by package name
-        val launchIntent = context.packageManager.getLaunchIntentForPackage(bank.packageName)
-        if (launchIntent != null) {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(launchIntent)
-            Toast.makeText(
-                context,
-                "Payment details copied \u2014 paste in ${bank.displayName}",
-                Toast.LENGTH_LONG,
-            ).show()
-            return true
+        // Try each known package name for this bank
+        for (pkg in bank.packageNames) {
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(pkg)
+            if (launchIntent != null) {
+                Log.d(TAG, "Launching ${bank.displayName} via package $pkg")
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(launchIntent)
+                Toast.makeText(
+                    context,
+                    "Payment details copied \u2014 paste in ${bank.displayName}",
+                    Toast.LENGTH_LONG,
+                ).show()
+                return true
+            }
         }
 
-        // App not installed
+        Log.w(TAG, "No package found for ${bank.displayName}: tried ${bank.packageNames}")
         Toast.makeText(
             context,
             "${bank.displayName} is not installed",

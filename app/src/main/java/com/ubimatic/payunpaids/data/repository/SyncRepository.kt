@@ -21,9 +21,13 @@ class SyncRepository @Inject constructor(
         return invoices to autoPayCount
     }
 
-    suspend fun markAsPaid(invoiceId: Int) {
+    suspend fun markAsPaid(invoiceId: Int, journalId: Int? = null) {
         invoiceDao.markAsPaid(invoiceId)
-        invoiceRepository.markAsPaid(invoiceId)
+        invoiceRepository.markAsPaid(invoiceId, journalId)
+    }
+
+    suspend fun fetchJournals(): List<Pair<Int, String>> {
+        return invoiceRepository.fetchJournals()
     }
 
     private fun Invoice.toEntity() = InvoiceEntity(

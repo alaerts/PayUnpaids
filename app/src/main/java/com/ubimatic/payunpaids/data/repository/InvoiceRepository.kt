@@ -161,26 +161,32 @@ class InvoiceRepository @Inject constructor(
         return remaining to autoPayCount
     }
 
-    suspend fun markAsPaid(invoiceId: Int) {
+    suspend fun markAsPaid(invoiceId: Int, journalId: Int? = null) {
         val currentUid = uid ?: authenticate()
 
         try {
-            // Step 1: Create payment register wizard with the invoice context
             val context = mapOf<String, Any>(
                 "active_model" to "account.move",
                 "active_ids" to listOf(invoiceId),
             )
 
+            // Create payment wizard with optional journal
+            val wizardValues = mutableMapOf<String, Any>(
+                "group_payment" to false,
+            )
+            if (journalId != null) {
+                wizardValues["journal_id"] = journalId
+            }
+
             val wizardId = odooClient.create(
                 url, db, currentUid, apiKey,
                 model = "account.payment.register",
-                values = emptyMap(),
+                values = wizardValues,
                 context = context,
             )
 
             if (wizardId != null) {
-                // Step 2: Execute action_create_payments on the wizard
-                Log.d(TAG, "Created payment wizard $wizardId for invoice $invoiceId")
+                Log.d(TAG, "Created payment wizard $wizardId for invoice $invoiceId (journal=$journalId)")
                 odooClient.callMethod(
                     url, db, currentUid, apiKey,
                     model = "account.payment.register",
@@ -195,6 +201,21 @@ class InvoiceRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to register payment for invoice $invoiceId: ${e.message}")
             throw e
+        }
+    }
+
+    suspend fun fetchJournals(): List<Pair<Int, String>> {
+        val currentUid = uid ?: authenticate()
+        val journals = odooClient.searchRead(
+            url, db, currentUid, apiKey,
+            model = "account.journal",
+            domain = listOf(listOf("type", "=", "bank")),
+            fields = listOf("id", "name"),
+        )
+        return journals.map { j ->
+            val id = (j["id"] as? Int) ?: 0
+            val name = j["name"]?.toString() ?: ""
+            id to name
         }
     }
 }
