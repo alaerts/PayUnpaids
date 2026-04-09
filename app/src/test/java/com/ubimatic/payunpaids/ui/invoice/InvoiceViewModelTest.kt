@@ -95,13 +95,19 @@ class InvoiceViewModelTest {
     }
 
     @Test
-    fun `navigate past last shows all done`() = runTest(testDispatcher) {
+    fun `all done when all invoices marked paid`() = runTest(testDispatcher) {
         val vm = createViewModel()
         advanceUntilIdle()
 
+        coEvery { syncRepository.markAsPaid(any()) } returns Unit
+        // Mark all 3 invoices as paid
+        vm.togglePaid() // invoice 1
         vm.goToNext()
+        vm.togglePaid() // invoice 2
         vm.goToNext()
-        vm.goToNext()
+        vm.togglePaid() // invoice 3
+        advanceUntilIdle()
+
         assertTrue(vm.uiState.value.allDone)
     }
 
@@ -115,16 +121,31 @@ class InvoiceViewModelTest {
     }
 
     @Test
-    fun `mark paid removes invoice from list`() = runTest(testDispatcher) {
+    fun `toggle paid keeps invoice in list`() = runTest(testDispatcher) {
         val vm = createViewModel()
         advanceUntilIdle()
 
         coEvery { syncRepository.markAsPaid(1) } returns Unit
-        vm.markCurrentAsPaid()
+        vm.togglePaid()
         advanceUntilIdle()
 
-        assertEquals(2, vm.uiState.value.invoices.size)
+        assertEquals(3, vm.uiState.value.invoices.size) // still all 3
+        assertTrue(1 in vm.uiState.value.paidIds)
         assertEquals(1, vm.uiState.value.stats.markedManually)
+    }
+
+    @Test
+    fun `toggle paid then unpaid removes from paidIds`() = runTest(testDispatcher) {
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        coEvery { syncRepository.markAsPaid(1) } returns Unit
+        vm.togglePaid() // mark paid
+        vm.togglePaid() // undo
+        advanceUntilIdle()
+
+        assertFalse(1 in vm.uiState.value.paidIds)
+        assertEquals(0, vm.uiState.value.stats.markedManually)
     }
 
     @Test

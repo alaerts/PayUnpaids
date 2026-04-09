@@ -40,8 +40,8 @@ import com.ubimatic.payunpaids.ui.alldone.AllDoneScreen
 import com.ubimatic.payunpaids.ui.theme.Amber
 import com.ubimatic.payunpaids.ui.theme.AmberDark
 import com.ubimatic.payunpaids.ui.theme.DarkBorder
-import com.ubimatic.payunpaids.ui.theme.DarkBorderLight
 import com.ubimatic.payunpaids.ui.theme.DarkSurface
+import com.ubimatic.payunpaids.ui.theme.Green
 import com.ubimatic.payunpaids.ui.theme.TextPrimary
 import com.ubimatic.payunpaids.ui.theme.TextSecondary
 import com.ubimatic.payunpaids.ui.theme.WarningBg
@@ -91,7 +91,10 @@ fun InvoiceScreen(
                             )
                             Text(
                                 text = buildString {
-                                    append("Invoice ${state.currentIndex + 1} of ${state.invoices.size}")
+                                    append("${state.currentIndex + 1}/${state.invoices.size}")
+                                    if (state.paidIds.isNotEmpty()) {
+                                        append(" (${state.paidIds.size} paid)")
+                                    }
                                     append(" \u00B7 \u20AC${String.format("%.2f", invoice.amountResidual)}")
                                     invoice.invoiceDate?.let { append(" \u00B7 $it") }
                                 },
@@ -143,18 +146,26 @@ fun InvoiceScreen(
                         Text("\u2190 Prev", color = TextSecondary, fontSize = 12.sp)
                     }
 
-                    // Paid
+                    // Paid / Unpaid toggle
+                    val isPaid = invoice.id in state.paidIds
                     TextButton(
-                        onClick = viewModel::markCurrentAsPaid,
+                        onClick = viewModel::togglePaid,
                         modifier = Modifier
                             .weight(1f)
-                            .background(DarkBorder, RoundedCornerShape(8.dp)),
+                            .background(
+                                if (isPaid) Green else DarkBorder,
+                                RoundedCornerShape(8.dp),
+                            ),
                     ) {
-                        Text("\u2713 Paid", color = TextPrimary, fontSize = 12.sp)
+                        Text(
+                            if (isPaid) "\u2713 Paid" else "\u2713 Paid",
+                            color = if (isPaid) AmberDark else TextPrimary,
+                            fontSize = 12.sp,
+                        )
                     }
 
-                    // Pay
-                    if (invoice.hasIban) {
+                    // Pay (hide if already paid)
+                    if (invoice.hasIban && !isPaid) {
                         TextButton(
                             onClick = viewModel::showPaySheet,
                             modifier = Modifier
@@ -231,17 +242,36 @@ fun InvoiceScreen(
                         }
 
                         // Content area
-                        if (invoice.pdfData != null) {
-                            InvoicePdfScreen(
-                                invoiceId = invoice.id,
-                                pdfData = invoice.pdfData,
-                                modifier = Modifier.weight(1f),
-                            )
-                        } else {
-                            InvoiceFallbackScreen(
-                                invoice = invoice,
-                                modifier = Modifier.weight(1f),
-                            )
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (invoice.pdfData != null) {
+                                InvoicePdfScreen(
+                                    invoiceId = invoice.id,
+                                    pdfData = invoice.pdfData,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            } else {
+                                InvoiceFallbackScreen(
+                                    invoice = invoice,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+
+                            // Paid overlay
+                            if (invoice.id in state.paidIds) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Green.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "\u2713 PAID",
+                                        fontSize = 40.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Green.copy(alpha = 0.4f),
+                                    )
+                                }
+                            }
                         }
                     }
                 }

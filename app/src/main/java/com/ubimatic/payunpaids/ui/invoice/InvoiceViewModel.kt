@@ -18,15 +18,21 @@ import javax.inject.Inject
 
 data class InvoiceUiState(
     val invoices: List<Invoice> = emptyList(),
+    val paidIds: Set<Int> = emptySet(),
     val currentIndex: Int = 0,
     val isLoading: Boolean = true,
     val error: String? = null,
     val showPaySheet: Boolean = false,
-    val allDone: Boolean = false,
-    val stats: SessionStats = SessionStats(),
     val hasCredentials: Boolean = true,
     val pendingPayment: Boolean = false,
-)
+    val stats: SessionStats = SessionStats(),
+) {
+    val allDone: Boolean
+        get() = invoices.isNotEmpty() && paidIds.containsAll(invoices.map { it.id })
+
+    val unpaidCount: Int
+        get() = invoices.count { it.id !in paidIds }
+}
 
 @HiltViewModel
 class InvoiceViewModel @Inject constructor(
@@ -43,6 +49,11 @@ class InvoiceViewModel @Inject constructor(
             val state = _uiState.value
             return state.invoices.getOrNull(state.currentIndex)
         }
+
+    fun isCurrentPaid(): Boolean {
+        val invoice = currentInvoice ?: return false
+        return invoice.id in _uiState.value.paidIds
+    }
 
     init {
         checkCredentialsAndSync()
@@ -65,10 +76,10 @@ class InvoiceViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         invoices = invoices,
+                        paidIds = emptySet(),
                         currentIndex = 0,
                         isLoading = false,
-                        allDone = invoices.isEmpty(),
-                        stats = it.stats.copy(autoPaid = autoPayCount),
+                        stats = SessionStats(autoPaid = autoPayCount),
                     )
                 }
             } catch (e: Exception) {
@@ -83,7 +94,7 @@ class InvoiceViewModel @Inject constructor(
         _uiState.update { state ->
             val nextIndex = state.currentIndex + 1
             if (nextIndex >= state.invoices.size) {
-                state.copy(allDone = true)
+                state // Stay on last invoice
             } else {
                 state.copy(currentIndex = nextIndex)
             }
@@ -97,23 +108,35 @@ class InvoiceViewModel @Inject constructor(
         }
     }
 
-    fun markCurrentAsPaid() {
+    fun togglePaid() {
         val invoice = currentInvoice ?: return
-        viewModelScope.launch {
-            try {
-                syncRepository.markAsPaid(invoice.id)
-                _uiState.update { state ->
-                    val newInvoices = state.invoices.filter { it.id != invoice.id }
-                    val newIndex = state.currentIndex.coerceAtMost((newInvoices.size - 1).coerceAtLeast(0))
-                    state.copy(
-                        invoices = newInvoices,
-                        currentIndex = newIndex,
-                        allDone = newInvoices.isEmpty(),
-                        stats = state.stats.copy(markedManually = state.stats.markedManually + 1),
-                    )
+        val isPaid = invoice.id in _uiState.value.paidIds
+
+        if (isPaid) {
+            // Undo: remove from local paid set (Odoo payment may already be registered)
+            _uiState.update { state ->
+                state.copy(
+                    paidIds = state.paidIds - invoice.id,
+                    stats = state.stats.copy(
+                        markedManually = (state.stats.markedManually - 1).coerceAtLeast(0),
+                    ),
+                )
+            }
+        } else {
+            // Mark as paid locally and in Odoo
+            _uiState.update { state ->
+                state.copy(
+                    paidIds = state.paidIds + invoice.id,
+                    stats = state.stats.copy(markedManually = state.stats.markedManually + 1),
+                )
+            }
+            // Register payment in Odoo (fire and forget — undo only reverts locally)
+            viewModelScope.launch {
+                try {
+                    syncRepository.markAsPaid(invoice.id)
+                } catch (e: Exception) {
+                    _uiState.update { it.copy(error = "Odoo: ${e.message}") }
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
             }
         }
     }
@@ -137,21 +160,19 @@ class InvoiceViewModel @Inject constructor(
         _uiState.update { it.copy(pendingPayment = false) }
 
         val invoice = currentInvoice ?: return
+        // Mark as paid locally
+        _uiState.update { state ->
+            state.copy(
+                paidIds = state.paidIds + invoice.id,
+                stats = state.stats.copy(paidViaBank = state.stats.paidViaBank + 1),
+            )
+        }
+        // Register in Odoo
         viewModelScope.launch {
             try {
                 syncRepository.markAsPaid(invoice.id)
-                _uiState.update { state ->
-                    val newInvoices = state.invoices.filter { it.id != invoice.id }
-                    val newIndex = state.currentIndex.coerceAtMost((newInvoices.size - 1).coerceAtLeast(0))
-                    state.copy(
-                        invoices = newInvoices,
-                        currentIndex = newIndex,
-                        allDone = newInvoices.isEmpty(),
-                        stats = state.stats.copy(paidViaBank = state.stats.paidViaBank + 1),
-                    )
-                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+                _uiState.update { it.copy(error = "Odoo: ${e.message}") }
             }
         }
     }

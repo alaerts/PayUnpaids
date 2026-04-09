@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0] - 2026-04-09
+
+### Changed
+- **Undo paid**: Invoices are no longer removed from the list when marked as paid. They remain navigable with a green "PAID" overlay and the "Paid" button turns green. Tapping it again reverts the local paid state. Odoo payment registration happens immediately on mark-paid but undo only affects local state.
+- **Pay button**: Hidden for already-paid invoices (reappears on undo).
+- **Top bar subtitle**: Now shows paid count (e.g. "3/19 (5 paid)").
+- **All Done**: Only shown when every invoice in the list is marked paid.
+
 ## [0.4.2] - 2026-04-09
 
 ### Fixed
