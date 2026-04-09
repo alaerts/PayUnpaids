@@ -4,8 +4,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Declare banking app schemes for Android 11+ package visibility -->
+    <!-- Declare banking apps for Android 11+ package visibility -->
     <queries>
+        <!-- Deep link schemes -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="ing-homebank" />
@@ -22,6 +23,11 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="belfius" />
         </intent>
+        <!-- Package names for launch fallback -->
+        <package android:name="com.ing.banking" />
+        <package android:name="com.bnpparibasfortis.easybanking" />
+        <package android:name="com.kbc.mobilebanking" />
+        <package android:name="be.belfius.directmobile" />
         <package android:name="com.keytrade.mobile" />
     </queries>
 

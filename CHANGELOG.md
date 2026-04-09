@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.2] - 2026-04-09
+
+### Fixed
+- **Banking app launch**: Deep link schemes (`ing-homebank://`, etc.) are not supported by most Belgian banking apps. Now tries deep link first, then falls back to copying payment details to clipboard and opening the banking app by package name. Shows "Payment details copied — paste in [bank]" toast.
+
+### Changed
+- `Bank` enum now includes `packageName` for each bank (used for fallback launch).
+- AndroidManifest `<queries>` now declares both URI schemes and package names.
+
 ## [0.4.1] - 2026-04-09
 
 ### Fixed
