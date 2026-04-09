@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.1] - 2026-04-09
+
+### Fixed
+- **Mark-as-paid context serialization**: The `context` dict (containing `active_model` and `active_ids`) was serialized as a plain string instead of an XML-RPC struct, causing Odoo's `with_context()` to fail with `ValueError: dictionary update sequence element #0 has length 1`. Added `Map` handling to `xmlTypedValue` and refactored `xmlKwargs` to use it.
+
 ## [0.4.0] - 2026-04-09
 
 ### Fixed

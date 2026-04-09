@@ -247,12 +247,20 @@ class OdooXmlRpcClient @Inject constructor(
         return call("$url/xmlrpc/2/object", body)
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun xmlTypedValue(v: Any): String = when (v) {
         is String -> xmlString(v)
         is Int -> xmlInt(v)
         is Boolean -> xmlBoolean(v)
         is Double -> xmlDouble(v)
         is List<*> -> xmlArray(v.map { xmlTypedValue(it ?: "") })
+        is Map<*, *> -> {
+            val map = v as Map<String, Any>
+            val members = map.entries.joinToString("\n") { (k, mv) ->
+                "<member><name>${escapeXml(k)}</name><value>${xmlTypedValue(mv)}</value></member>"
+            }
+            if (members.isEmpty()) "<struct/>" else "<struct>$members</struct>"
+        }
         else -> xmlString(v.toString())
     }
 
@@ -366,22 +374,7 @@ $paramsXml
 
     private fun xmlKwargs(kwargs: Map<String, Any>): String {
         val members = kwargs.entries.joinToString("\n") { (k, v) ->
-            val valueXml = when (v) {
-                is String -> xmlString(v)
-                is Int -> xmlInt(v)
-                is List<*> -> {
-                    val items = v.map { item ->
-                        when (item) {
-                            is String -> xmlString(item)
-                            is Int -> xmlInt(item)
-                            else -> xmlString(item.toString())
-                        }
-                    }
-                    xmlArray(items)
-                }
-                else -> xmlString(v.toString())
-            }
-            "<member><name>${escapeXml(k)}</name><value>$valueXml</value></member>"
+            "<member><name>${escapeXml(k)}</name><value>${xmlTypedValue(v)}</value></member>"
         }
         return "<struct>$members</struct>"
     }
