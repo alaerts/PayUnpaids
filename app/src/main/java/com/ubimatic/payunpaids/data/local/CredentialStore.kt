@@ -17,6 +17,7 @@ class CredentialStore @Inject constructor(
         private const val KEY_URL = "odoo_url"
         private const val KEY_USERNAME = "odoo_username"
         private const val KEY_API_KEY = "odoo_api_key"
+        private const val KEY_SELECTED_BANK = "selected_bank"
     }
 
     private val prefs: SharedPreferences by lazy {
@@ -49,6 +50,12 @@ class CredentialStore @Inject constructor(
         } catch (e: Exception) {
             ""
         }
+    }
+
+    fun getSelectedBank(): String? = prefs.getString(KEY_SELECTED_BANK, null)
+
+    fun saveSelectedBank(bankName: String) {
+        prefs.edit().putString(KEY_SELECTED_BANK, bankName).apply()
     }
 
     fun save(url: String, username: String, apiKey: String) {

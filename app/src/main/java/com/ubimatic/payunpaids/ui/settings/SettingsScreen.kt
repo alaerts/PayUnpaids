@@ -1,6 +1,7 @@
 package com.ubimatic.payunpaids.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -134,6 +135,52 @@ fun SettingsScreen(
                 onHelp = { helpDialog = it },
                 isPassword = true,
             )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Banking app selector
+            FieldLabel("Banking App")
+            if (state.installedBanks.isEmpty()) {
+                Text(
+                    text = "No supported banking app detected",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            } else {
+                Column(modifier = Modifier.padding(top = 6.dp)) {
+                    state.installedBanks.forEach { bank ->
+                        val isSelected = bank == state.selectedBank
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                                .background(
+                                    if (isSelected) Amber.copy(alpha = 0.15f) else DarkSurface,
+                                    RoundedCornerShape(8.dp),
+                                )
+                                .clickable { viewModel.selectBank(bank) }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.material3.RadioButton(
+                                selected = isSelected,
+                                onClick = { viewModel.selectBank(bank) },
+                                colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                                    selectedColor = Amber,
+                                    unselectedColor = TextSecondary,
+                                ),
+                            )
+                            Text(
+                                text = bank.displayName,
+                                color = if (isSelected) Amber else TextPrimary,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ubimatic.payunpaids.data.local.CredentialStore
 import com.ubimatic.payunpaids.data.remote.OdooException
 import com.ubimatic.payunpaids.data.remote.OdooXmlRpcClient
+import com.ubimatic.payunpaids.domain.model.Bank
+import com.ubimatic.payunpaids.payment.PaymentDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,12 +23,15 @@ data class SettingsUiState(
     val testResult: String? = null,
     val testSuccess: Boolean = false,
     val isSaved: Boolean = false,
+    val installedBanks: List<Bank> = emptyList(),
+    val selectedBank: Bank? = null,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val credentialStore: CredentialStore,
     private val odooClient: OdooXmlRpcClient,
+    private val paymentDispatcher: PaymentDispatcher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -34,14 +39,28 @@ class SettingsViewModel @Inject constructor(
 
     init {
         loadCredentials()
+        detectInstalledBanks()
     }
 
     private fun loadCredentials() {
+        val savedBankName = credentialStore.getSelectedBank()
+        val savedBank = savedBankName?.let { name -> Bank.entries.find { it.name == name } }
         _uiState.update {
             it.copy(
                 url = credentialStore.getUrl(),
                 username = credentialStore.getUsername(),
                 apiKey = credentialStore.getApiKey(),
+                selectedBank = savedBank,
+            )
+        }
+    }
+
+    private fun detectInstalledBanks() {
+        val installed = paymentDispatcher.getInstalledBanks()
+        _uiState.update { state ->
+            state.copy(
+                installedBanks = installed,
+                selectedBank = state.selectedBank ?: installed.firstOrNull(),
             )
         }
     }
@@ -58,6 +77,10 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(apiKey = apiKey, testResult = null, isSaved = false) }
     }
 
+    fun selectBank(bank: Bank) {
+        _uiState.update { it.copy(selectedBank = bank, isSaved = false) }
+    }
+
     fun testConnection() {
         val state = _uiState.value
         if (state.url.isBlank() || state.username.isBlank() || state.apiKey.isBlank()) {
@@ -72,18 +95,7 @@ class SettingsViewModel @Inject constructor(
                 val host = android.net.Uri.parse(url).host ?: ""
                 val db = host.substringBefore(".")
 
-                android.util.Log.d("SettingsVM", "Authenticating: url=$url db=$db user=${state.username}")
-
-                // Step 1: verify endpoint is reachable
                 val version = odooClient.version(url)
-                android.util.Log.d("SettingsVM", "Odoo version: $version")
-
-                // Step 2: list databases to verify DB name
-                val databases = odooClient.listDatabases(url)
-                android.util.Log.d("SettingsVM", "Available databases: $databases")
-                android.util.Log.d("SettingsVM", "Using DB: $db, match=${databases.contains(db)}")
-
-                // Step 3: authenticate
                 val uid = odooClient.authenticate(url, db, state.username, state.apiKey)
                 if (uid != null) {
                     _uiState.update {
@@ -117,6 +129,7 @@ class SettingsViewModel @Inject constructor(
     fun save() {
         val state = _uiState.value
         credentialStore.save(state.url, state.username, state.apiKey)
+        state.selectedBank?.let { credentialStore.saveSelectedBank(it.name) }
         _uiState.update { it.copy(isSaved = true) }
     }
 }

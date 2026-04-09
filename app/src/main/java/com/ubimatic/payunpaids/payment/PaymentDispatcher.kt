@@ -20,6 +20,14 @@ class PaymentDispatcher @Inject constructor(
     @ApplicationContext private val context: Context,
     private val uriBuilder: PaymentUriBuilder,
 ) {
+    fun getInstalledBanks(): List<Bank> {
+        return Bank.entries.filter { bank ->
+            bank.packageNames.any { pkg ->
+                context.packageManager.getLaunchIntentForPackage(pkg) != null
+            }
+        }
+    }
+
     fun dispatch(invoice: Invoice, bank: Bank): Boolean {
         val iban = invoice.partnerIban ?: return false
 

@@ -50,7 +50,9 @@ class InvoiceViewModelTest {
 
     private fun createViewModel(): InvoiceViewModel {
         every { credentialStore.hasCredentials() } returns true
+        every { credentialStore.getSelectedBank() } returns null
         coEvery { syncRepository.sync() } returns (testInvoices to 2)
+        coEvery { syncRepository.fetchJournals() } returns emptyList()
         return InvoiceViewModel(syncRepository, paymentDispatcher, credentialStore)
     }
 

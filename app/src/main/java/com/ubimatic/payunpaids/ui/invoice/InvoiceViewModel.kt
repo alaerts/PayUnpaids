@@ -22,10 +22,10 @@ data class InvoiceUiState(
     val currentIndex: Int = 0,
     val isLoading: Boolean = true,
     val error: String? = null,
-    val showPaySheet: Boolean = false,
     val showJournalPicker: Boolean = false,
     val journals: List<Pair<Int, String>> = emptyList(),
     val selectedJournalId: Int? = null,
+    val selectedBank: Bank? = null,
     val hasCredentials: Boolean = true,
     val pendingPayment: Boolean = false,
     val stats: SessionStats = SessionStats(),
@@ -67,7 +67,9 @@ class InvoiceViewModel @Inject constructor(
             _uiState.update { it.copy(hasCredentials = false, isLoading = false) }
             return
         }
-        _uiState.update { it.copy(hasCredentials = true) }
+        val savedBankName = credentialStore.getSelectedBank()
+        val savedBank = savedBankName?.let { name -> Bank.entries.find { it.name == name } }
+        _uiState.update { it.copy(hasCredentials = true, selectedBank = savedBank) }
         sync()
     }
 
@@ -164,17 +166,10 @@ class InvoiceViewModel @Inject constructor(
         }
     }
 
-    fun showPaySheet() {
-        _uiState.update { it.copy(showPaySheet = true) }
-    }
-
-    fun hidePaySheet() {
-        _uiState.update { it.copy(showPaySheet = false) }
-    }
-
-    fun payWithBank(bank: Bank) {
+    fun pay() {
         val invoice = currentInvoice ?: return
-        _uiState.update { it.copy(showPaySheet = false, pendingPayment = true) }
+        val bank = _uiState.value.selectedBank ?: return
+        _uiState.update { it.copy(pendingPayment = true) }
         paymentDispatcher.dispatch(invoice, bank)
     }
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.0] - 2026-04-09
+
+### Changed
+- **Bank selection moved to Settings**: User picks their preferred banking app in Settings, from a list of detected installed apps only. The Pay button on the invoice screen now launches that bank directly — no more bottom sheet picker.
+- **Title/subtitle swapped**: Top bar now shows invoice info (sequence, amount, date) as the main title and supplier name as the subtitle. Subtitle is brighter (80% white instead of gray).
+
+### Removed
+- Payment bottom sheet (bank picker) — replaced by settings-based selection.
+
 ## [0.6.0] - 2026-04-09
 
 ### Added

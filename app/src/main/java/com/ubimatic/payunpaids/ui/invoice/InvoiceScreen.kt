@@ -82,15 +82,6 @@ fun InvoiceScreen(
                     if (invoice != null) {
                         Column {
                             Text(
-                                text = invoice.partnerName,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = TextPrimary,
-                                ),
-                            )
-                            Text(
                                 text = buildString {
                                     append("${state.currentIndex + 1}/${state.invoices.size}")
                                     if (state.paidIds.isNotEmpty()) {
@@ -99,9 +90,18 @@ fun InvoiceScreen(
                                     append(" \u00B7 \u20AC${String.format("%.2f", invoice.amountResidual)}")
                                     invoice.invoiceDate?.let { append(" \u00B7 $it") }
                                 },
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimary,
+                                ),
+                            )
+                            Text(
+                                text = invoice.partnerName,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextSecondary,
-                                    fontSize = 11.sp,
+                                    color = TextPrimary.copy(alpha = 0.8f),
+                                    fontSize = 13.sp,
                                 ),
                             )
                         }
@@ -156,13 +156,13 @@ fun InvoiceScreen(
                         modifier = Modifier.weight(1f),
                     )
 
-                    // Pay (hide if already paid)
-                    if (invoice.hasIban && !isPaid) {
+                    // Pay (hide if already paid or no bank selected)
+                    if (invoice.hasIban && !isPaid && state.selectedBank != null) {
                         ActionButton(
-                            text = "Pay \u25BE",
+                            text = "Pay",
                             color = AmberDark,
                             bg = Amber,
-                            onClick = viewModel::showPaySheet,
+                            onClick = viewModel::pay,
                             modifier = Modifier.weight(1f),
                             bold = true,
                         )
@@ -263,15 +263,6 @@ fun InvoiceScreen(
                 }
             }
         }
-    }
-
-    // Payment bottom sheet
-    if (state.showPaySheet) {
-        PaymentBottomSheet(
-            amount = invoice?.amountResidual ?: 0.0,
-            onBankSelected = viewModel::payWithBank,
-            onDismiss = viewModel::hidePaySheet,
-        )
     }
 
     // Journal picker dialog (shown when multiple bank journals exist)
