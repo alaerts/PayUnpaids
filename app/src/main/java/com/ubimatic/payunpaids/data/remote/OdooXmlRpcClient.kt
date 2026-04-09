@@ -185,6 +185,77 @@ class OdooXmlRpcClient @Inject constructor(
         return parseArrayOfStructs(response)
     }
 
+    suspend fun create(
+        url: String,
+        db: String,
+        uid: Int,
+        apiKey: String,
+        model: String,
+        values: Map<String, Any>,
+        context: Map<String, Any> = emptyMap(),
+    ): Int? {
+        val kwargs = if (context.isNotEmpty()) {
+            mapOf("context" to context)
+        } else emptyMap()
+
+        val params = mutableListOf(
+            xmlString(db),
+            xmlInt(uid),
+            xmlString(apiKey),
+            xmlString(model),
+            xmlString("create"),
+            xmlArray(listOf(
+                xmlStruct(values.mapValues { (_, v) -> xmlTypedValue(v) }),
+            )),
+        )
+        if (kwargs.isNotEmpty()) {
+            params.add(xmlKwargs(kwargs))
+        }
+
+        val body = buildXmlRpcCall("execute_kw", params)
+        val response = call("$url/xmlrpc/2/object", body)
+        return parseIntValue(response)
+    }
+
+    suspend fun callMethod(
+        url: String,
+        db: String,
+        uid: Int,
+        apiKey: String,
+        model: String,
+        method: String,
+        ids: List<Int>,
+        context: Map<String, Any> = emptyMap(),
+    ): String {
+        val kwargs = if (context.isNotEmpty()) {
+            mapOf("context" to context)
+        } else emptyMap()
+
+        val params = mutableListOf(
+            xmlString(db),
+            xmlInt(uid),
+            xmlString(apiKey),
+            xmlString(model),
+            xmlString(method),
+            xmlArray(listOf(xmlIntArray(ids))),
+        )
+        if (kwargs.isNotEmpty()) {
+            params.add(xmlKwargs(kwargs))
+        }
+
+        val body = buildXmlRpcCall("execute_kw", params)
+        return call("$url/xmlrpc/2/object", body)
+    }
+
+    private fun xmlTypedValue(v: Any): String = when (v) {
+        is String -> xmlString(v)
+        is Int -> xmlInt(v)
+        is Boolean -> xmlBoolean(v)
+        is Double -> xmlDouble(v)
+        is List<*> -> xmlArray(v.map { xmlTypedValue(it ?: "") })
+        else -> xmlString(v.toString())
+    }
+
     private suspend fun call(endpoint: String, xmlBody: String): String {
         return withContext(Dispatchers.IO) {
             Log.d(TAG, ">>> POST $endpoint")

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0] - 2026-04-09
+
+### Fixed
+- **Mark-as-paid now works in Odoo**: Previously used a no-op `write` call. Now properly creates an `account.payment.register` wizard and calls `action_create_payments` to register the payment in Odoo's accounting.
+
+### Added
+- **Pinch-to-zoom on PDFs**: PDF viewer now supports pinch-to-zoom (1x–5x) with pan gestures. Render resolution increased to 3x for clarity when zoomed.
+- **Invoice date in top bar**: Subtitle now shows "Invoice X of Y . Amount . Date".
+- **Play Store listing**: `PLAY_STORE_LISTING.md` with title, descriptions, tags, and asset guidelines. Includes "not affiliated with Odoo SA" disclaimer.
+
 ## [0.2.0] - 2026-04-09
 
 ### Fixed

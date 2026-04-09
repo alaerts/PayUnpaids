@@ -164,44 +164,37 @@ class InvoiceRepository @Inject constructor(
     suspend fun markAsPaid(invoiceId: Int) {
         val currentUid = uid ?: authenticate()
 
-        // Register a payment for the invoice via Odoo's action_register_payment
-        // For simplicity, we use the journal entry approach
-        odooClient.write(
-            url, db, currentUid, apiKey,
-            model = "account.move",
-            ids = listOf(invoiceId),
-            values = emptyMap(), // The actual payment registration is handled separately
-        )
-
-        // Mark via payment register wizard
-        registerPayment(currentUid, invoiceId)
-    }
-
-    private suspend fun registerPayment(currentUid: Int, invoiceId: Int) {
-        // Use Odoo's payment register wizard
-        // First, create the payment wizard
-        val body = buildPaymentWizardXml(currentUid, invoiceId)
-        // For now, we'll use a simpler approach: just call action_register_payment
-        // This creates a payment wizard context, then validates it
-
-        // Simpler approach: use account.payment.register wizard
         try {
-            val wizardRecords = odooClient.searchRead(
-                url, db, currentUid, apiKey,
-                model = "account.move",
-                domain = listOf(listOf("id", "=", invoiceId)),
-                fields = listOf("id"),
+            // Step 1: Create payment register wizard with the invoice context
+            val context = mapOf<String, Any>(
+                "active_model" to "account.move",
+                "active_ids" to listOf(invoiceId),
             )
-            // Call the action directly - the actual payment registration
-            // will be handled through Odoo's standard mechanism
-            Log.d(TAG, "Payment registered for invoice $invoiceId")
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not auto-register payment for invoice $invoiceId: ${e.message}")
-        }
-    }
 
-    private fun buildPaymentWizardXml(uid: Int, invoiceId: Int): String {
-        // This would be a more complex XML-RPC call in production
-        return ""
+            val wizardId = odooClient.create(
+                url, db, currentUid, apiKey,
+                model = "account.payment.register",
+                values = emptyMap(),
+                context = context,
+            )
+
+            if (wizardId != null) {
+                // Step 2: Execute action_create_payments on the wizard
+                Log.d(TAG, "Created payment wizard $wizardId for invoice $invoiceId")
+                odooClient.callMethod(
+                    url, db, currentUid, apiKey,
+                    model = "account.payment.register",
+                    method = "action_create_payments",
+                    ids = listOf(wizardId),
+                    context = context,
+                )
+                Log.d(TAG, "Payment registered for invoice $invoiceId")
+            } else {
+                Log.w(TAG, "Could not create payment wizard for invoice $invoiceId")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to register payment for invoice $invoiceId: ${e.message}")
+            throw e
+        }
     }
 }

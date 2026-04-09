@@ -90,7 +90,11 @@ fun InvoiceScreen(
                                 ),
                             )
                             Text(
-                                text = "Invoice ${state.currentIndex + 1} of ${state.invoices.size} \u00B7 \u20AC${String.format("%.2f", invoice.amountResidual)}",
+                                text = buildString {
+                                    append("Invoice ${state.currentIndex + 1} of ${state.invoices.size}")
+                                    append(" \u00B7 \u20AC${String.format("%.2f", invoice.amountResidual)}")
+                                    invoice.invoiceDate?.let { append(" \u00B7 $it") }
+                                },
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = TextSecondary,
                                     fontSize = 11.sp,
