@@ -192,70 +192,90 @@ fun InvoiceScreen(
                 }
 
                 invoice != null -> {
-                    Column {
-                        // Warning: no structured communication
-                        if (!invoice.hasStructuredCommunication) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(WarningBg)
-                                    .padding(horizontal = 14.dp, vertical = 9.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = "\u26A0  No structured communication \u2014 verify before paying",
-                                    color = WarningText,
-                                    fontSize = 12.sp,
-                                )
-                            }
+                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+                        initialPage = state.currentIndex,
+                        pageCount = { state.invoices.size },
+                    )
+
+                    // Sync pager swipe → ViewModel index
+                    LaunchedEffect(pagerState.currentPage) {
+                        if (pagerState.currentPage != state.currentIndex) {
+                            viewModel.setCurrentIndex(pagerState.currentPage)
                         }
-
-                        // Warning: no IBAN
-                        if (!invoice.hasIban) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
-                                    .padding(horizontal = 14.dp, vertical = 9.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = "\u26A0  No IBAN available \u2014 cannot pay electronically",
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 12.sp,
-                                )
-                            }
+                    }
+                    // Sync ViewModel index → pager (e.g. via Prev/Next buttons)
+                    LaunchedEffect(state.currentIndex) {
+                        if (pagerState.currentPage != state.currentIndex) {
+                            pagerState.animateScrollToPage(state.currentIndex)
                         }
+                    }
 
-                        // Content area
-                        Box(modifier = Modifier.weight(1f)) {
-                            if (invoice.pdfData != null) {
-                                InvoicePdfScreen(
-                                    invoiceId = invoice.id,
-                                    pdfData = invoice.pdfData,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            } else {
-                                InvoiceFallbackScreen(
-                                    invoice = invoice,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-
-                            // Paid overlay
-                            if (invoice.id in state.paidIds) {
-                                Box(
+                    androidx.compose.foundation.pager.HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                    ) { pageIndex ->
+                        val pageInvoice = state.invoices[pageIndex]
+                        Column {
+                            if (!pageInvoice.hasStructuredCommunication) {
+                                Row(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Green.copy(alpha = 0.12f)),
-                                    contentAlignment = Alignment.Center,
+                                        .fillMaxWidth()
+                                        .background(WarningBg)
+                                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
-                                        text = "\u2713 PAID",
-                                        fontSize = 40.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Green.copy(alpha = 0.4f),
+                                        text = "\u26A0  No structured communication \u2014 verify before paying",
+                                        color = WarningText,
+                                        fontSize = 12.sp,
                                     )
+                                }
+                            }
+
+                            if (!pageInvoice.hasIban) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
+                                        .padding(horizontal = 14.dp, vertical = 9.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = "\u26A0  No IBAN available \u2014 cannot pay electronically",
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontSize = 12.sp,
+                                    )
+                                }
+                            }
+
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (pageInvoice.pdfData != null) {
+                                    InvoicePdfScreen(
+                                        invoiceId = pageInvoice.id,
+                                        pdfData = pageInvoice.pdfData,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else {
+                                    InvoiceFallbackScreen(
+                                        invoice = pageInvoice,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+
+                                if (pageInvoice.id in state.paidIds) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Green.copy(alpha = 0.12f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "\u2713 PAID",
+                                            fontSize = 40.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Green.copy(alpha = 0.4f),
+                                        )
+                                    }
                                 }
                             }
                         }

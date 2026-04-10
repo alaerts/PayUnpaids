@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class BankOption(val bank: Bank, val installed: Boolean)
+
 data class SettingsUiState(
     val url: String = "",
     val username: String = "",
@@ -23,7 +25,7 @@ data class SettingsUiState(
     val testResult: String? = null,
     val testSuccess: Boolean = false,
     val isSaved: Boolean = false,
-    val installedBanks: List<Bank> = emptyList(),
+    val banks: List<BankOption> = emptyList(),
     val selectedBank: Bank? = null,
 )
 
@@ -56,11 +58,14 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun detectInstalledBanks() {
-        val installed = paymentDispatcher.getInstalledBanks()
+        val options = Bank.entries.map { bank ->
+            BankOption(bank, paymentDispatcher.isBankInstalled(bank))
+        }
+        val firstInstalled = options.firstOrNull { it.installed }?.bank
         _uiState.update { state ->
             state.copy(
-                installedBanks = installed,
-                selectedBank = state.selectedBank ?: installed.firstOrNull(),
+                banks = options,
+                selectedBank = state.selectedBank ?: firstInstalled,
             )
         }
     }

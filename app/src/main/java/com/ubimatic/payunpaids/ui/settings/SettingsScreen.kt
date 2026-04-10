@@ -138,76 +138,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Banking app selector
-            FieldLabel("Banking App")
-            if (state.installedBanks.isEmpty()) {
-                Text(
-                    text = "No supported banking app detected",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            } else {
-                Column(modifier = Modifier.padding(top = 6.dp)) {
-                    state.installedBanks.forEach { bank ->
-                        val isSelected = bank == state.selectedBank
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                                .background(
-                                    if (isSelected) Amber.copy(alpha = 0.15f) else DarkSurface,
-                                    RoundedCornerShape(8.dp),
-                                )
-                                .clickable { viewModel.selectBank(bank) }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            androidx.compose.material3.RadioButton(
-                                selected = isSelected,
-                                onClick = { viewModel.selectBank(bank) },
-                                colors = androidx.compose.material3.RadioButtonDefaults.colors(
-                                    selectedColor = Amber,
-                                    unselectedColor = TextSecondary,
-                                ),
-                            )
-                            Text(
-                                text = bank.displayName,
-                                color = if (isSelected) Amber else TextPrimary,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Connection test result
-            state.testResult?.let { result ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DarkSurface, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = if (state.testSuccess) "\u2022" else "\u2022",
-                        color = if (state.testSuccess) Green else MaterialTheme.colorScheme.error,
-                        fontSize = 20.sp,
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
-                    Text(
-                        text = result,
-                        fontSize = 12.sp,
-                        color = if (state.testSuccess) Green else MaterialTheme.colorScheme.error,
-                    )
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
+            // Test Connection (right after Odoo parameters)
             Row(modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     onClick = viewModel::testConnection,
@@ -223,8 +154,90 @@ fun SettingsScreen(
                     }
                     Text("Test Connection")
                 }
-
                 Spacer(modifier = Modifier.weight(1f))
+            }
+
+            // Connection test result
+            state.testResult?.let { result ->
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkSurface, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "\u2022",
+                        color = if (state.testSuccess) Green else MaterialTheme.colorScheme.error,
+                        fontSize = 20.sp,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text(
+                        text = result,
+                        fontSize = 12.sp,
+                        color = if (state.testSuccess) Green else MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Banking app selector (further down)
+            FieldLabel("Banking App")
+            Text(
+                text = "Choose your preferred Belgian banking app",
+                fontSize = 11.sp,
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+            )
+            Column(modifier = Modifier.padding(top = 4.dp)) {
+                state.banks.forEach { option ->
+                    val bank = option.bank
+                    val isSelected = bank == state.selectedBank
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp)
+                            .background(
+                                if (isSelected) Amber.copy(alpha = 0.15f) else DarkSurface,
+                                RoundedCornerShape(8.dp),
+                            )
+                            .clickable { viewModel.selectBank(bank) }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        androidx.compose.material3.RadioButton(
+                            selected = isSelected,
+                            onClick = { viewModel.selectBank(bank) },
+                            colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                                selectedColor = Amber,
+                                unselectedColor = TextSecondary,
+                            ),
+                        )
+                        Column(modifier = Modifier.padding(start = 8.dp).weight(1f)) {
+                            Text(
+                                text = bank.displayName,
+                                color = if (isSelected) Amber else TextPrimary,
+                                fontSize = 14.sp,
+                            )
+                            if (!option.installed) {
+                                Text(
+                                    text = "Not installed",
+                                    fontSize = 10.sp,
+                                    color = TextSecondary,
+                                )
+                            }
+                        }
+                        if (option.installed) {
+                            Text(
+                                text = "\u2713",
+                                fontSize = 14.sp,
+                                color = Green,
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))

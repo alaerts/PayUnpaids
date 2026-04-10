@@ -98,6 +98,10 @@ class InvoiceViewModel @Inject constructor(
         }
     }
 
+    fun setCurrentIndex(index: Int) {
+        _uiState.update { it.copy(currentIndex = index.coerceIn(0, (it.invoices.size - 1).coerceAtLeast(0))) }
+    }
+
     fun goToNext() {
         _uiState.update { state ->
             val nextIndex = state.currentIndex + 1

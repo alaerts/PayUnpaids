@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0] - 2026-04-10
+
+### Added
+- **Swipe between invoices**: Horizontal swipe on the invoice content navigates to previous/next invoice. Synced bidirectionally with Prev/Next buttons.
+- **Multi-page PDF navigation**: PDFs with multiple pages now use a vertical pager — swipe up/down to see additional pages. Page indicator (e.g. "1 / 2 \u2195") shown in the top-right.
+- **All banks listed in settings**: All Belgian banks now appear in the bank picker, not just installed ones. Each shows a green check if installed, or "Not installed" subtitle. User can pre-select a bank before installing the app.
+
+### Changed
+- **Settings layout**: Test Connection button moved to right after the Odoo credentials (URL/username/password). Banking app section moved further down.
+
+### Notes on ING / banking apps
+- **No Belgian banking app supports payment deep links** with pre-filled IBAN/amount/communication. The app uses the clipboard fallback: payment details are copied to clipboard and the banking app is opened. You then need to start a new payment in the banking app and paste the details.
+
 ## [0.7.0] - 2026-04-09
 
 ### Changed

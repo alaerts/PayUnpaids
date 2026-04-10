@@ -4,13 +4,14 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ubimatic.payunpaids.ui.theme.TextSecondary
 import java.io.File
 
@@ -74,11 +76,10 @@ fun InvoicePdfScreen(
     val pageCount = pdfRenderer.pageCount
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
-    Column(modifier = modifier.fillMaxSize()) {
-        HorizontalPager(
+    Box(modifier = modifier.fillMaxSize()) {
+        VerticalPager(
             state = pagerState,
-            modifier = Modifier.weight(1f),
-            userScrollEnabled = true,
+            modifier = Modifier.fillMaxSize(),
         ) { pageIndex ->
             val bitmap = remember(invoiceId, pageIndex) {
                 try {
@@ -106,14 +107,20 @@ fun InvoicePdfScreen(
         }
 
         if (pageCount > 1) {
+            // Page indicator overlay (top-right)
             Text(
-                text = "Page ${pagerState.currentPage + 1} / $pageCount",
+                text = "${pagerState.currentPage + 1} / $pageCount \u2195",
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(4.dp),
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(
+                        androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f),
+                        androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
-                textAlign = TextAlign.Center,
+                color = androidx.compose.ui.graphics.Color.White,
+                fontSize = 11.sp,
             )
         }
     }
@@ -133,18 +140,19 @@ private fun ZoomableImage(
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     val newScale = (scale * zoom).coerceIn(1f, 5f)
-                    val newOffset = if (newScale == 1f) {
-                        Offset.Zero
+                    if (newScale == 1f) {
+                        scale = 1f
+                        offset = Offset.Zero
                     } else {
+                        scale = newScale
+                        // Only consume pan when zoomed in
                         val maxX = (size.width * (newScale - 1)) / 2
                         val maxY = (size.height * (newScale - 1)) / 2
-                        Offset(
+                        offset = Offset(
                             x = (offset.x + pan.x).coerceIn(-maxX, maxX),
                             y = (offset.y + pan.y).coerceIn(-maxY, maxY),
                         )
                     }
-                    scale = newScale
-                    offset = newOffset
                 }
             },
         contentAlignment = Alignment.Center,
@@ -164,3 +172,4 @@ private fun ZoomableImage(
         )
     }
 }
+

@@ -21,10 +21,12 @@ class PaymentDispatcher @Inject constructor(
     private val uriBuilder: PaymentUriBuilder,
 ) {
     fun getInstalledBanks(): List<Bank> {
-        return Bank.entries.filter { bank ->
-            bank.packageNames.any { pkg ->
-                context.packageManager.getLaunchIntentForPackage(pkg) != null
-            }
+        return Bank.entries.filter(::isBankInstalled)
+    }
+
+    fun isBankInstalled(bank: Bank): Boolean {
+        return bank.packageNames.any { pkg ->
+            context.packageManager.getLaunchIntentForPackage(pkg) != null
         }
     }
 
