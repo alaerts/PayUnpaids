@@ -6,29 +6,40 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
-val Typography = Typography(
+// Using system fonts. Mirrors SnapAndMail's typography for consistency.
+val DmSans = FontFamily.SansSerif
+val DmMono = FontFamily.Monospace
+
+val PayUnpaidsTypography = Typography(
+    headlineMedium = TextStyle(
+        fontFamily = DmSans,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        letterSpacing = (-0.4).sp,
+    ),
+    titleMedium = TextStyle(
+        fontFamily = DmSans,
+        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = DmSans,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
+    ),
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = DmSans,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
+        fontFamily = DmMono,
+        fontWeight = FontWeight.Normal,
         fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+        letterSpacing = 0.6.sp,
+    ),
 )
+
+// Legacy alias so existing imports keep working
+val Typography = PayUnpaidsTypography

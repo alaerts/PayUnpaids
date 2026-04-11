@@ -3,38 +3,25 @@ package com.ubimatic.payunpaids.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 
-private val AppColorScheme = darkColorScheme(
-    primary = Amber,
-    onPrimary = AmberDark,
-    primaryContainer = DarkSurface,
-    onPrimaryContainer = TextPrimary,
-    secondary = TextSecondary,
-    onSecondary = Color.White,
-    tertiary = Green,
-    onTertiary = Color.White,
-    background = DarkBg,
+private val PayUnpaidsColorScheme = darkColorScheme(
+    primary = Accent,
+    onPrimary = TextPrimary,
+    background = Background,
     onBackground = TextPrimary,
-    surface = DarkBg,
+    surface = Surface,
     onSurface = TextPrimary,
-    surfaceVariant = DarkSurface,
-    onSurfaceVariant = TextSecondary,
-    outline = DarkBorderLight,
-    outlineVariant = DarkBorder,
-    error = ErrorRed,
-    onError = Color.White,
-    errorContainer = WarningBg,
-    onErrorContainer = WarningText,
+    surfaceVariant = Surface2,
+    onSurfaceVariant = TextSecond,
+    error = Danger,
+    onError = TextPrimary,
 )
 
 @Composable
-fun PayUnpaidsTheme(
-    content: @Composable () -> Unit,
-) {
+fun PayUnpaidsTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = AppColorScheme,
-        typography = Typography,
+        colorScheme = PayUnpaidsColorScheme,
+        typography = PayUnpaidsTypography,
         content = content,
     )
 }

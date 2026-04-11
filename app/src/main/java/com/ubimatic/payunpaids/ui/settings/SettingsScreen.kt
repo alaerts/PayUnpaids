@@ -79,14 +79,11 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text("Settings", color = TextPrimary)
-                        Text(
-                            "First-time setup",
-                            fontSize = 11.sp,
-                            color = TextSecondary,
-                        )
-                    }
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = TextPrimary,
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -94,7 +91,7 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = com.ubimatic.payunpaids.ui.theme.Background,
                 ),
             )
         },

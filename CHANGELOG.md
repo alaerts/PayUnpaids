@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0] - 2026-04-11
+
+### Changed
+- **Look and feel mirrors SnapAndMail**: Adopted the same color palette (accent orange `#E8793A` on near-black backgrounds), typography (DM Sans / DM Mono with tight letter-spacing), and top-bar wordmark style.
+- **App wordmark at top**: The top bar now shows `PayUnpaids` with `Pay` and `paids` in accent orange and `Un` in white — matching SnapAndMail's `SnapAndMail` branding.
+- **Invoice info moved**: The invoice counter / amount / date and supplier name moved from the top bar title to a secondary header row right below the wordmark.
+- **Settings top bar**: Also uses `headlineMedium` + black background for consistency.
+
+### Added
+- **Triple-tap easter egg**: Tapping the `PayUnpaids` wordmark three times reveals a dialog with "Crafted by Patrick Alaerts / Assisted by Claude Code" and the tagline "Fetch \u2192 Review \u2192 Pay — One tap, zero friction."
+
 ## [0.8.1] - 2026-04-11
 
 ### Fixed

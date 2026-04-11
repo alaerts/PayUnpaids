@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,23 +31,33 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ubimatic.payunpaids.R
 import com.ubimatic.payunpaids.ui.alldone.AllDoneScreen
+import com.ubimatic.payunpaids.ui.theme.Accent
 import com.ubimatic.payunpaids.ui.theme.Amber
 import com.ubimatic.payunpaids.ui.theme.AmberDark
+import com.ubimatic.payunpaids.ui.theme.Background
 import com.ubimatic.payunpaids.ui.theme.DarkBorder
 import com.ubimatic.payunpaids.ui.theme.DarkSurface
 import com.ubimatic.payunpaids.ui.theme.Green
+import com.ubimatic.payunpaids.ui.theme.Surface
+import com.ubimatic.payunpaids.ui.theme.TextHint
 import com.ubimatic.payunpaids.ui.theme.TextPrimary
+import com.ubimatic.payunpaids.ui.theme.TextSecond
 import com.ubimatic.payunpaids.ui.theme.TextSecondary
 import com.ubimatic.payunpaids.ui.theme.WarningBg
 import com.ubimatic.payunpaids.ui.theme.WarningText
@@ -59,11 +71,19 @@ fun InvoiceScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Easter egg: triple-tap the wordmark
+    var tapCount by remember { mutableIntStateOf(0) }
+    var showEasterEgg by remember { mutableStateOf(false) }
+
     LaunchedEffect(state.error) {
         state.error?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearError()
         }
+    }
+
+    if (showEasterEgg) {
+        EasterEggDialog(onDismiss = { showEasterEgg = false })
     }
 
     if (state.allDone && !state.isLoading) {
@@ -77,56 +97,38 @@ fun InvoiceScreen(
     val invoice = viewModel.currentInvoice
 
     Scaffold(
+        containerColor = Background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
-                    if (invoice != null) {
-                        Column {
-                            Text(
-                                text = buildString {
-                                    append("${state.currentIndex + 1}/${state.invoices.size}")
-                                    if (state.paidIds.isNotEmpty()) {
-                                        append(" (${state.paidIds.size} paid)")
-                                    }
-                                    append(" \u00B7 \u20AC${String.format("%.2f", invoice.amountResidual)}")
-                                    invoice.invoiceDate?.let { append(" \u00B7 $it") }
-                                },
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = TextPrimary,
-                                ),
-                            )
-                            Text(
-                                text = invoice.partnerName,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextPrimary.copy(alpha = 0.8f),
-                                    fontSize = 13.sp,
-                                ),
-                            )
-                        }
-                    } else {
-                        Text("PayUnpaids", color = TextPrimary)
-                    }
+                    Text(
+                        text = androidx.compose.ui.text.buildAnnotatedString {
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = Accent)) { append("Pay") }
+                            append("Un")
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = Accent)) { append("paids") }
+                        },
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.clickable {
+                            tapCount++
+                            if (tapCount >= 3) {
+                                showEasterEgg = true
+                                tapCount = 0
+                            }
+                        },
+                    )
                 },
                 actions = {
-                    IconButton(
-                        onClick = onNavigateToSettings,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = DarkSurface,
-                        ),
-                    ) {
+                    IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = TextSecondary,
+                            contentDescription = androidx.compose.ui.res.stringResource(R.string.settings_cd),
+                            tint = TextSecond,
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = Background,
                 ),
             )
         },
@@ -212,15 +214,44 @@ fun InvoiceScreen(
                         }
                     }
 
-                    androidx.compose.foundation.pager.HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .excludeFromSystemGestures(),
-                    ) { pageIndex ->
-                        val pageInvoice = state.invoices[pageIndex]
-                        Column {
-                            if (!pageInvoice.hasStructuredCommunication) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Secondary header: invoice info + supplier
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Background)
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                text = buildString {
+                                    append("${state.currentIndex + 1}/${state.invoices.size}")
+                                    if (state.paidIds.isNotEmpty()) {
+                                        append(" (${state.paidIds.size} paid)")
+                                    }
+                                    append(" \u00B7 \u20AC${String.format("%.2f", invoice.amountResidual)}")
+                                    invoice.invoiceDate?.let { append(" \u00B7 $it") }
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextPrimary,
+                            )
+                            Text(
+                                text = invoice.partnerName,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextSecond,
+                            )
+                        }
+
+                        androidx.compose.foundation.pager.HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .excludeFromSystemGestures(),
+                        ) { pageIndex ->
+                            val pageInvoice = state.invoices[pageIndex]
+                            Column {
+                                if (!pageInvoice.hasStructuredCommunication) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -266,19 +297,20 @@ fun InvoiceScreen(
                                     )
                                 }
 
-                                if (pageInvoice.id in state.paidIds) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(Green.copy(alpha = 0.12f)),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            text = "\u2713 PAID",
-                                            fontSize = 40.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Green.copy(alpha = 0.4f),
-                                        )
+                                    if (pageInvoice.id in state.paidIds) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Green.copy(alpha = 0.12f)),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                text = "\u2713 PAID",
+                                                fontSize = 40.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Green.copy(alpha = 0.4f),
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -337,12 +369,60 @@ private fun ActionButton(
     }
 }
 
+@Composable
+private fun EasterEggDialog(onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text(
+                    text = androidx.compose.ui.res.stringResource(R.string.easter_confirm),
+                    color = Accent,
+                )
+            }
+        },
+        title = {
+            Text(
+                text = androidx.compose.ui.text.buildAnnotatedString {
+                    withStyle(androidx.compose.ui.text.SpanStyle(color = Accent)) { append("Pay") }
+                    append("Un")
+                    withStyle(androidx.compose.ui.text.SpanStyle(color = Accent)) { append("paids") }
+                },
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = androidx.compose.ui.res.stringResource(R.string.easter_crafted),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextPrimary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = androidx.compose.ui.res.stringResource(R.string.easter_assisted),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecond,
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = androidx.compose.ui.res.stringResource(R.string.easter_tagline),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextHint,
+                )
+            }
+        },
+        containerColor = Surface,
+        textContentColor = TextPrimary,
+    )
+}
+
 /**
  * Tells Android to exclude this area from system gestures (e.g. edge-swipe back).
  * Required for HorizontalPager to receive left/right swipes near the screen edges
  * on Android 10+.
  */
-@androidx.compose.runtime.Composable
+@Composable
 private fun Modifier.excludeFromSystemGestures(): Modifier {
     val view = androidx.compose.ui.platform.LocalView.current
     return this.onGloballyPositioned { coords ->
