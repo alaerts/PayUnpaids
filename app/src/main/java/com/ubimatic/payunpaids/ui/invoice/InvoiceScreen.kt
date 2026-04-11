@@ -32,6 +32,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -212,7 +214,9 @@ fun InvoiceScreen(
 
                     androidx.compose.foundation.pager.HorizontalPager(
                         state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .excludeFromSystemGestures(),
                     ) { pageIndex ->
                         val pageInvoice = state.invoices[pageIndex]
                         Column {
@@ -330,5 +334,28 @@ private fun ActionButton(
             fontSize = 12.sp,
             fontWeight = if (bold) FontWeight.Medium else FontWeight.Normal,
         )
+    }
+}
+
+/**
+ * Tells Android to exclude this area from system gestures (e.g. edge-swipe back).
+ * Required for HorizontalPager to receive left/right swipes near the screen edges
+ * on Android 10+.
+ */
+@androidx.compose.runtime.Composable
+private fun Modifier.excludeFromSystemGestures(): Modifier {
+    val view = androidx.compose.ui.platform.LocalView.current
+    return this.onGloballyPositioned { coords ->
+        val bounds = coords.boundsInRoot()
+        val rect = android.graphics.Rect(
+            bounds.left.toInt(),
+            bounds.top.toInt(),
+            bounds.right.toInt(),
+            bounds.bottom.toInt(),
+        )
+        // Requires API 29+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            view.systemGestureExclusionRects = listOf(rect)
+        }
     }
 }
