@@ -29,12 +29,13 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ubimatic.payunpaids.ui.theme.TextSecondary
 import java.io.File
+import kotlin.math.min
 
 @Composable
 fun InvoicePdfScreen(
@@ -76,26 +77,20 @@ fun InvoicePdfScreen(
     val pageCount = pdfRenderer.pageCount
     val pagerState = rememberPagerState(pageCount = { pageCount })
 
+    // Target bitmap size based on screen — cap to avoid OOM on scanned PDFs
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val targetWidth = remember(configuration) {
+        with(density) { configuration.screenWidthDp.dp.toPx().toInt().coerceIn(600, 2000) }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         VerticalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
         ) { pageIndex ->
-            val bitmap = remember(invoiceId, pageIndex) {
-                try {
-                    val page = pdfRenderer.openPage(pageIndex)
-                    val bmp = Bitmap.createBitmap(
-                        page.width * 3,
-                        page.height * 3,
-                        Bitmap.Config.ARGB_8888,
-                    )
-                    bmp.eraseColor(android.graphics.Color.WHITE)
-                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    page.close()
-                    bmp
-                } catch (e: Exception) {
-                    null
-                }
+            val bitmap = remember(invoiceId, pageIndex, targetWidth) {
+                renderPdfPage(pdfRenderer, pageIndex, targetWidth)
             }
 
             if (bitmap != null) {
@@ -103,6 +98,16 @@ fun InvoicePdfScreen(
                     bitmap = bitmap,
                     contentDescription = "PDF page ${pageIndex + 1}",
                 )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "Could not render page ${pageIndex + 1}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
@@ -123,6 +128,55 @@ fun InvoicePdfScreen(
                 fontSize = 11.sp,
             )
         }
+    }
+}
+
+private fun renderPdfPage(
+    renderer: PdfRenderer,
+    pageIndex: Int,
+    targetWidthPx: Int,
+): Bitmap? {
+    return try {
+        val page = renderer.openPage(pageIndex)
+        try {
+            val aspectRatio = page.height.toFloat() / page.width.toFloat()
+            // Scale so that the page is rendered at `targetWidthPx` wide
+            var width = targetWidthPx
+            var height = (targetWidthPx * aspectRatio).toInt()
+
+            // Cap total pixels to avoid OOM (scanned PDFs can be very tall)
+            val maxPixels = 4_000_000 // ~16MB with ARGB_8888
+            val totalPixels = width.toLong() * height.toLong()
+            if (totalPixels > maxPixels) {
+                val scale = kotlin.math.sqrt(maxPixels.toDouble() / totalPixels.toDouble())
+                width = (width * scale).toInt()
+                height = (height * scale).toInt()
+            }
+
+            // Try ARGB_8888 first, fall back to RGB_565 on OOM
+            val bmp = try {
+                Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            } catch (e: OutOfMemoryError) {
+                try {
+                    Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+                } catch (e2: OutOfMemoryError) {
+                    val half = min(width, height) / 2
+                    Bitmap.createBitmap(
+                        (width * 0.5f).toInt().coerceAtLeast(half),
+                        (height * 0.5f).toInt().coerceAtLeast(half),
+                        Bitmap.Config.RGB_565,
+                    )
+                }
+            }
+            bmp.eraseColor(android.graphics.Color.WHITE)
+            page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            bmp
+        } finally {
+            page.close()
+        }
+    } catch (e: Throwable) {
+        android.util.Log.e("InvoicePdfScreen", "Failed to render page $pageIndex: ${e.message}")
+        null
     }
 }
 

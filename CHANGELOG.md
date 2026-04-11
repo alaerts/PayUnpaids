@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.1] - 2026-04-11
+
+### Fixed
+- **Built-in PDF viewer for scanned invoices**: `PdfRenderer` was running out of memory on large scanned PDFs (which are typically full-page images at high DPI), causing the viewer to fail and potentially triggering system fallback behavior. The renderer now:
+  - Sizes bitmaps based on screen width (600\u20132000 px, clamped)
+  - Caps total pixels to ~4M to avoid OOM
+  - Falls back from ARGB_8888 to RGB_565 on OOM, then half-size as last resort
+  - Closes pages properly in a `finally` block
+  - Shows per-page error message instead of failing silently
+
 ## [0.8.0] - 2026-04-10
 
 ### Added
