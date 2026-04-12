@@ -6,7 +6,12 @@
 
     <!-- Declare banking apps for Android 11+ package visibility -->
     <queries>
-        <!-- Deep link schemes -->
+        <!-- BEP (Belgian Electronic Payment) interop scheme -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="bepgenapp" />
+        </intent>
+        <!-- Bank-specific deep link schemes (legacy fallback) -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="ing-homebank" />

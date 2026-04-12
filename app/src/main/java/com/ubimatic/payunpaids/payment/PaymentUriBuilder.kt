@@ -8,21 +8,17 @@ import javax.inject.Singleton
 @Singleton
 class PaymentUriBuilder @Inject constructor() {
 
-    fun buildUriString(
-        bank: Bank,
+    /**
+     * Builds a BEP (Belgian Electronic Payment) URI that triggers the system
+     * app chooser showing all installed Belgian banking apps.
+     * Scheme: bepgenapp://dotx?iban=...&amount=...&currency=EUR&name=...&communication=...
+     */
+    fun buildBepUri(
         iban: String,
         amount: Double,
         name: String,
         communication: String?,
-    ): String? {
-        val scheme = when (bank) {
-            Bank.ING -> "ing-homebank"
-            Bank.BNP_PARIBAS_FORTIS -> "bnpparibasfortis"
-            Bank.KBC -> "kbc-mobile"
-            Bank.BELFIUS -> "belfius"
-            Bank.KEYTRADE -> return null
-        }
-
+    ): String {
         val amountStr = String.format("%.2f", amount)
         val params = mutableListOf(
             "iban" to iban,
@@ -33,7 +29,33 @@ class PaymentUriBuilder @Inject constructor() {
         if (!communication.isNullOrBlank()) {
             params.add("communication" to communication)
         }
+        val query = params.joinToString("&") { (k, v) ->
+            "$k=${URLEncoder.encode(v, "UTF-8")}"
+        }
+        return "bepgenapp://dotx?$query"
+    }
 
+    /**
+     * Builds a bank-specific deep link URI (legacy fallback).
+     */
+    fun buildUriString(
+        bank: Bank,
+        iban: String,
+        amount: Double,
+        name: String,
+        communication: String?,
+    ): String? {
+        val scheme = bank.deepLinkScheme ?: return null
+        val amountStr = String.format("%.2f", amount)
+        val params = mutableListOf(
+            "iban" to iban,
+            "amount" to amountStr,
+            "currency" to "EUR",
+            "name" to name,
+        )
+        if (!communication.isNullOrBlank()) {
+            params.add("communication" to communication)
+        }
         val query = params.joinToString("&") { (k, v) ->
             "$k=${URLEncoder.encode(v, "UTF-8")}"
         }

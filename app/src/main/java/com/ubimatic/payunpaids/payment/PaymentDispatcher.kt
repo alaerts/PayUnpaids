@@ -33,33 +33,44 @@ class PaymentDispatcher @Inject constructor(
     fun dispatch(invoice: Invoice, bank: Bank): Boolean {
         val iban = invoice.partnerIban ?: return false
 
-        // Try deep link first
+        // Strategy 1: BEP interop deep link (works across all Belgian banks)
+        if (tryBepPayment(invoice, iban)) return true
+
+        // Strategy 2: bank-specific deep link
         if (bank.deepLinkScheme != null) {
             val uriString = uriBuilder.buildUriString(
-                bank = bank,
-                iban = iban,
+                bank = bank, iban = iban,
                 amount = invoice.amountResidual,
                 name = invoice.partnerName,
                 communication = invoice.paymentReference,
             )
-            if (uriString != null && tryDeepLink(uriString)) {
-                return true
-            }
-            Log.d(TAG, "Deep link failed for ${bank.displayName}, falling back to clipboard")
+            if (uriString != null && tryLaunchUri(uriString)) return true
         }
 
-        // Fallback: copy payment details to clipboard and open the banking app
+        // Strategy 3: clipboard + launch banking app by package name
         return dispatchClipboard(invoice, bank, iban)
     }
 
-    private fun tryDeepLink(uriString: String): Boolean {
-        Log.d(TAG, "Trying deep link: $uriString")
+    private fun tryBepPayment(invoice: Invoice, iban: String): Boolean {
+        val bepUri = uriBuilder.buildBepUri(
+            iban = iban,
+            amount = invoice.amountResidual,
+            name = invoice.partnerName,
+            communication = invoice.paymentReference,
+        )
+        Log.d(TAG, "Trying BEP deep link: $bepUri")
+        return tryLaunchUri(bepUri)
+    }
+
+    private fun tryLaunchUri(uriString: String): Boolean {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriString)).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+            addCategory(Intent.CATEGORY_DEFAULT)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
         val canResolve = intent.resolveActivity(context.packageManager) != null
-        Log.d(TAG, "Can resolve: $canResolve")
+        Log.d(TAG, "URI: $uriString → can resolve: $canResolve")
 
         if (!canResolve) return false
 
@@ -67,7 +78,7 @@ class PaymentDispatcher @Inject constructor(
             context.startActivity(intent)
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Deep link launch failed: ${e.message}")
+            Log.w(TAG, "Launch failed: ${e.message}")
             false
         }
     }
@@ -83,11 +94,10 @@ class PaymentDispatcher @Inject constructor(
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("Payment details", payload))
 
-        // Try each known package name for this bank
         for (pkg in bank.packageNames) {
             val launchIntent = context.packageManager.getLaunchIntentForPackage(pkg)
             if (launchIntent != null) {
-                Log.d(TAG, "Launching ${bank.displayName} via package $pkg")
+                Log.d(TAG, "Clipboard fallback: launching ${bank.displayName} via $pkg")
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(launchIntent)
                 Toast.makeText(
@@ -99,12 +109,8 @@ class PaymentDispatcher @Inject constructor(
             }
         }
 
-        Log.w(TAG, "No package found for ${bank.displayName}: tried ${bank.packageNames}")
-        Toast.makeText(
-            context,
-            "${bank.displayName} is not installed",
-            Toast.LENGTH_LONG,
-        ).show()
+        Log.w(TAG, "No package found for ${bank.displayName}")
+        Toast.makeText(context, "${bank.displayName} is not installed", Toast.LENGTH_LONG).show()
         return false
     }
 }

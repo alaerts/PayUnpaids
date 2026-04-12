@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.0] - 2026-04-12
+
+### Added
+- **BEP payment deep links**: Discovered that Belgian banking apps register the `bepgenapp://dotx` URI scheme (Belgian Electronic Payment interoperability standard, same mechanism used by Doccle). The app now uses this as the primary payment method — tapping Pay triggers the system app chooser showing all installed Belgian banking apps with the payment pre-filled (IBAN, amount, communication, creditor name). No more clipboard workaround needed for banks that support BEP.
+
+### Changed
+- **Payment strategy**: Now three-tier — (1) BEP interop deep link, (2) bank-specific deep link, (3) clipboard + app launch fallback.
+- **Wordmark**: "Pay" in white, "Unpaids" in accent orange.
+- **Slogan**: "One app, zero friction" (was "one tap").
+- **App icon**: Dark background, white document with orange accents, green checkmark.
+
+### Fixed
+- **Hello Bank detection**: Added `com.bnpp.hellobank` as primary package name (confirmed via `adb`).
+
+### Added
+- **Translations**: FR, DE, NL, ES, IT, PT for easter egg and settings strings.
+
 ## [0.9.0] - 2026-04-11
 
 ### Changed
