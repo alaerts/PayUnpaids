@@ -1,7 +1,9 @@
 package com.ubimatic.payunpaids.ui.invoice
 
 import com.ubimatic.payunpaids.data.local.CredentialStore
+import com.ubimatic.payunpaids.data.local.InvoiceOverrideDao
 import com.ubimatic.payunpaids.data.repository.SyncRepository
+import com.ubimatic.payunpaids.domain.PdfTextExtractor
 import com.ubimatic.payunpaids.domain.model.Invoice
 import com.ubimatic.payunpaids.payment.PaymentDispatcher
 import io.mockk.coEvery
@@ -28,6 +30,8 @@ class InvoiceViewModelTest {
     private lateinit var syncRepository: SyncRepository
     private lateinit var paymentDispatcher: PaymentDispatcher
     private lateinit var credentialStore: CredentialStore
+    private lateinit var overrideDao: InvoiceOverrideDao
+    private lateinit var pdfTextExtractor: PdfTextExtractor
 
     private val testInvoices = listOf(
         Invoice(1, "INV/001", "Supplier A", 100.0, "2024-01-15", "2024-01-01", "+++123/4567/89012+++", "BE68539007547034", "posted"),
@@ -41,6 +45,8 @@ class InvoiceViewModelTest {
         syncRepository = mockk()
         paymentDispatcher = mockk()
         credentialStore = mockk()
+        overrideDao = mockk(relaxed = true)
+        pdfTextExtractor = mockk()
     }
 
     @After
@@ -53,7 +59,9 @@ class InvoiceViewModelTest {
         every { credentialStore.getSelectedBank() } returns null
         coEvery { syncRepository.sync() } returns (testInvoices to 2)
         coEvery { syncRepository.fetchJournals() } returns emptyList()
-        return InvoiceViewModel(syncRepository, paymentDispatcher, credentialStore)
+        coEvery { overrideDao.deleteExpired(any()) } returns Unit
+        coEvery { overrideDao.getOverride(any()) } returns null
+        return InvoiceViewModel(syncRepository, paymentDispatcher, credentialStore, overrideDao, pdfTextExtractor)
     }
 
     @Test
@@ -116,7 +124,7 @@ class InvoiceViewModelTest {
     @Test
     fun `no credentials shows settings`() = runTest(testDispatcher) {
         every { credentialStore.hasCredentials() } returns false
-        val vm = InvoiceViewModel(syncRepository, paymentDispatcher, credentialStore)
+        val vm = InvoiceViewModel(syncRepository, paymentDispatcher, credentialStore, overrideDao, pdfTextExtractor)
         advanceUntilIdle()
 
         assertFalse(vm.uiState.value.hasCredentials)

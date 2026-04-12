@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.ubimatic.payunpaids.data.local.AppDatabase
 import com.ubimatic.payunpaids.data.local.InvoiceDao
+import com.ubimatic.payunpaids.data.local.InvoiceOverrideDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,11 +35,18 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "payunpaids.db",
-        ).build()
+        )
+            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .build()
     }
 
     @Provides
     fun provideInvoiceDao(database: AppDatabase): InvoiceDao {
         return database.invoiceDao()
+    }
+
+    @Provides
+    fun provideInvoiceOverrideDao(database: AppDatabase): InvoiceOverrideDao {
+        return database.invoiceOverrideDao()
     }
 }

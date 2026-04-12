@@ -12,12 +12,23 @@ data class Invoice(
     val state: String,
     val pdfData: ByteArray? = null,
     val pdfFilename: String? = null,
+    // Overrides (from PDF extraction or manual entry)
+    val overrideIban: String? = null,
+    val overrideCommunication: String? = null,
 ) {
+    /** Effective IBAN: override > Odoo field */
+    val effectiveIban: String?
+        get() = overrideIban?.takeIf { it.isNotBlank() } ?: partnerIban
+
+    /** Effective communication: override > Odoo field */
+    val effectiveCommunication: String?
+        get() = overrideCommunication?.takeIf { it.isNotBlank() } ?: paymentReference
+
     val hasStructuredCommunication: Boolean
-        get() = !paymentReference.isNullOrBlank()
+        get() = !effectiveCommunication.isNullOrBlank()
 
     val hasIban: Boolean
-        get() = !partnerIban.isNullOrBlank()
+        get() = !effectiveIban.isNullOrBlank()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

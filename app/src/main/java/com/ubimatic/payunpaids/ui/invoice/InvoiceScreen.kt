@@ -54,6 +54,9 @@ import com.ubimatic.payunpaids.ui.theme.Background
 import com.ubimatic.payunpaids.ui.theme.DarkBorder
 import com.ubimatic.payunpaids.ui.theme.DarkSurface
 import com.ubimatic.payunpaids.ui.theme.Green
+import com.ubimatic.payunpaids.ui.theme.AccentDim
+import com.ubimatic.payunpaids.ui.theme.BorderWeak
+import com.ubimatic.payunpaids.ui.theme.Success
 import com.ubimatic.payunpaids.ui.theme.Surface
 import com.ubimatic.payunpaids.ui.theme.TextHint
 import com.ubimatic.payunpaids.ui.theme.TextPrimary
@@ -245,56 +248,60 @@ fun InvoiceScreen(
                         androidx.compose.foundation.pager.HorizontalPager(
                             state = pagerState,
                             modifier = Modifier
-                                .fillMaxSize()
+                                .weight(1f)
+                                .fillMaxWidth()
                                 .excludeFromSystemGestures(),
                         ) { pageIndex ->
                             val pageInvoice = state.invoices[pageIndex]
-                            Column {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Warning banners (only if no override available either)
                                 if (!pageInvoice.hasStructuredCommunication) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(WarningBg)
-                                        .padding(horizontal = 14.dp, vertical = 9.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = "\u26A0  No structured communication \u2014 verify before paying",
-                                        color = WarningText,
-                                        fontSize = 12.sp,
-                                    )
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(WarningBg)
+                                            .clickable { viewModel.showOverrideSheet() }
+                                            .padding(horizontal = 14.dp, vertical = 9.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = "\u26A0  No structured communication \u2014 tap to set",
+                                            color = WarningText,
+                                            fontSize = 12.sp,
+                                        )
+                                    }
                                 }
-                            }
 
-                            if (!pageInvoice.hasIban) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
-                                        .padding(horizontal = 14.dp, vertical = 9.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = "\u26A0  No IBAN available \u2014 cannot pay electronically",
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontSize = 12.sp,
-                                    )
+                                if (!pageInvoice.hasIban) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
+                                            .clickable { viewModel.showOverrideSheet() }
+                                            .padding(horizontal = 14.dp, vertical = 9.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = "\u26A0  No IBAN \u2014 tap to set",
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontSize = 12.sp,
+                                        )
+                                    }
                                 }
-                            }
 
-                            Box(modifier = Modifier.weight(1f)) {
-                                if (pageInvoice.pdfData != null) {
-                                    InvoicePdfScreen(
-                                        invoiceId = pageInvoice.id,
-                                        pdfData = pageInvoice.pdfData,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                } else {
-                                    InvoiceFallbackScreen(
-                                        invoice = pageInvoice,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (pageInvoice.pdfData != null) {
+                                        InvoicePdfScreen(
+                                            invoiceId = pageInvoice.id,
+                                            pdfData = pageInvoice.pdfData,
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
+                                    } else {
+                                        InvoiceFallbackScreen(
+                                            invoice = pageInvoice,
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
+                                    }
 
                                     if (pageInvoice.id in state.paidIds) {
                                         Box(
@@ -340,6 +347,168 @@ fun InvoiceScreen(
             confirmButton = {},
             containerColor = DarkSurface,
         )
+    }
+
+    // IBAN / Communication override sheet
+    if (state.showOverrideSheet) {
+        OverrideBottomSheet(
+            detectedIbans = state.detectedIbans,
+            detectedComms = state.detectedComms,
+            currentIban = invoice?.effectiveIban,
+            currentComm = invoice?.effectiveCommunication,
+            onSelectIban = { viewModel.setOverrideIban(it) },
+            onSelectComm = { viewModel.setOverrideCommunication(it) },
+            onDismiss = viewModel::hideOverrideSheet,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OverrideBottomSheet(
+    detectedIbans: List<String>,
+    detectedComms: List<String>,
+    currentIban: String?,
+    currentComm: String?,
+    onSelectIban: (String) -> Unit,
+    onSelectComm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var manualIban by remember { mutableStateOf("") }
+    var manualComm by remember { mutableStateOf("") }
+
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            Text(
+                "Payment Details",
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Set or override IBAN and structured communication",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecond,
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // IBAN section
+            Text("IBAN", style = MaterialTheme.typography.labelSmall, color = TextHint)
+            if (currentIban != null) {
+                Text(
+                    "Current: $currentIban",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Success,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            }
+            if (detectedIbans.isNotEmpty()) {
+                Text("Detected in PDF:", style = MaterialTheme.typography.bodyMedium, color = TextSecond)
+                detectedIbans.forEach { iban ->
+                    Text(
+                        text = iban,
+                        color = Accent,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelectIban(iban)
+                                onDismiss()
+                            }
+                            .background(AccentDim, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+            // Manual IBAN entry
+            androidx.compose.material3.OutlinedTextField(
+                value = manualIban,
+                onValueChange = { manualIban = it },
+                placeholder = { Text("Enter IBAN manually", color = TextHint) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Accent,
+                    unfocusedBorderColor = BorderWeak,
+                    cursorColor = Accent,
+                ),
+                trailingIcon = {
+                    if (manualIban.isNotBlank()) {
+                        androidx.compose.material3.IconButton(onClick = {
+                            onSelectIban(manualIban.trim())
+                            onDismiss()
+                        }) {
+                            Text("\u2713", color = Accent)
+                        }
+                    }
+                },
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Communication section
+            Text("STRUCTURED COMMUNICATION", style = MaterialTheme.typography.labelSmall, color = TextHint)
+            if (currentComm != null) {
+                Text(
+                    "Current: $currentComm",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Success,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            }
+            if (detectedComms.isNotEmpty()) {
+                Text("Detected in PDF:", style = MaterialTheme.typography.bodyMedium, color = TextSecond)
+                detectedComms.forEach { comm ->
+                    Text(
+                        text = comm,
+                        color = Accent,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelectComm(comm)
+                                onDismiss()
+                            }
+                            .background(AccentDim, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+            // Manual communication entry
+            androidx.compose.material3.OutlinedTextField(
+                value = manualComm,
+                onValueChange = { manualComm = it },
+                placeholder = { Text("+++xxx/xxxx/xxxxx+++", color = TextHint) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Accent,
+                    unfocusedBorderColor = BorderWeak,
+                    cursorColor = Accent,
+                ),
+                trailingIcon = {
+                    if (manualComm.isNotBlank()) {
+                        androidx.compose.material3.IconButton(onClick = {
+                            onSelectComm(manualComm.trim())
+                            onDismiss()
+                        }) {
+                            Text("\u2713", color = Accent)
+                        }
+                    }
+                },
+            )
+        }
     }
 }
 

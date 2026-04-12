@@ -31,7 +31,7 @@ class PaymentDispatcher @Inject constructor(
     }
 
     fun dispatch(invoice: Invoice, bank: Bank): Boolean {
-        val iban = invoice.partnerIban ?: return false
+        val iban = invoice.effectiveIban ?: return false
 
         // Strategy 1: BEP interop deep link (works across all Belgian banks)
         if (tryBepPayment(invoice, iban)) return true
@@ -42,7 +42,7 @@ class PaymentDispatcher @Inject constructor(
                 bank = bank, iban = iban,
                 amount = invoice.amountResidual,
                 name = invoice.partnerName,
-                communication = invoice.paymentReference,
+                communication = invoice.effectiveCommunication,
             )
             if (uriString != null && tryLaunchUri(uriString)) return true
         }
@@ -56,7 +56,7 @@ class PaymentDispatcher @Inject constructor(
             iban = iban,
             amount = invoice.amountResidual,
             name = invoice.partnerName,
-            communication = invoice.paymentReference,
+            communication = invoice.effectiveCommunication,
         )
         Log.d(TAG, "Trying BEP deep link: $bepUri")
         return tryLaunchUri(bepUri)
@@ -88,7 +88,7 @@ class PaymentDispatcher @Inject constructor(
             iban = iban,
             amount = invoice.amountResidual,
             name = invoice.partnerName,
-            communication = invoice.paymentReference,
+            communication = invoice.effectiveCommunication,
         )
 
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

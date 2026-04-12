@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.0] - 2026-04-12
+
+### Added
+- **PDF text extraction**: Automatically extracts IBANs and structured communications from PDF attachments using PDFBox. Detected values are shown in a bottom sheet for confirmation.
+- **Manual IBAN/communication override**: Tap the warning banner ("No IBAN" or "No structured communication") to open a bottom sheet where you can pick from detected values or enter manually. Overrides are persisted locally for 4 months via Room DB.
+- **Warning banners become tappable**: "No IBAN — tap to set" / "No structured communication — tap to set". Once set, the banner disappears and the Pay button becomes available.
+
+### Fixed
+- **Swipe between invoices**: Changed HorizontalPager from `fillMaxSize()` to `weight(1f)` so it takes remaining space after the header, fixing layout constraints that prevented swipe gestures.
+- **Odoo payment reconciliation**: Added `payment_difference_handling: reconcile` and `dont_redirect_to_payments: true` to payment wizard context. Added post-payment verification logging. Note: "in payment" is Odoo's correct state for a payment awaiting bank statement reconciliation — it will become "paid" when the bank statement is imported and matched.
+
 ## [1.0.0] - 2026-04-12
 
 ### Added

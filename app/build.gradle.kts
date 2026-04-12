@@ -65,6 +65,9 @@ dependencies {
     // OkHttp
     implementation(libs.okhttp)
 
+    // PDF text extraction
+    implementation(libs.pdfbox.android)
+
     // Navigation
     implementation(libs.navigation.compose)
 
