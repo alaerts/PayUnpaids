@@ -25,6 +25,7 @@
         </intent>
         <!-- Package names for launch fallback (including variants) -->
         <package android:name="com.ing.banking" />
+        <package android:name="com.bnpp.hellobank" />
         <package android:name="com.bnpp.easybanking" />
         <package android:name="com.bnpparibasfortis.easybanking" />
         <package android:name="com.kbc.mobile.android.phone" />

@@ -1,0 +1,7 @@
+<resources>
+    <string name="settings_cd">Einstellungen</string>
+    <string name="easter_confirm">Super!</string>
+    <string name="easter_crafted">Entwickelt von Patrick Alaerts</string>
+    <string name="easter_assisted">Unterst\u00fctzt von Claude Code</string>
+    <string name="easter_tagline">Abrufen \u2192 Pr\u00fcfen \u2192 Zahlen\nEine App, null Aufwand.</string>
+</resources>

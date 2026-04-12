@@ -5,40 +5,40 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Document/invoice shape -->
+    <!-- Document/invoice shape — white -->
     <path
-        android:fillColor="#E8EAF6"
+        android:fillColor="#FFFFFF"
         android:pathData="M30,22 L66,22 L78,34 L78,86 L30,86 Z" />
 
-    <!-- Folded corner -->
+    <!-- Folded corner — light orange -->
     <path
-        android:fillColor="#C5CAE9"
+        android:fillColor="#F4B88A"
         android:pathData="M66,22 L66,34 L78,34 Z" />
 
-    <!-- Document border -->
+    <!-- Document border — accent orange -->
     <path
         android:fillColor="#00000000"
         android:pathData="M30,22 L66,22 L78,34 L78,86 L30,86 Z"
         android:strokeWidth="1.5"
-        android:strokeColor="#7986CB" />
+        android:strokeColor="#E8793A" />
 
-    <!-- Invoice lines -->
+    <!-- Invoice lines — light orange/gray -->
     <path
-        android:fillColor="#9FA8DA"
+        android:fillColor="#F4C9A0"
         android:pathData="M38,42 L70,42 L70,44 L38,44 Z" />
     <path
-        android:fillColor="#9FA8DA"
+        android:fillColor="#F4C9A0"
         android:pathData="M38,50 L64,50 L64,52 L38,52 Z" />
     <path
-        android:fillColor="#9FA8DA"
+        android:fillColor="#F4C9A0"
         android:pathData="M38,58 L68,58 L68,60 L38,60 Z" />
     <path
-        android:fillColor="#9FA8DA"
+        android:fillColor="#F4C9A0"
         android:pathData="M38,66 L58,66 L58,68 L38,68 Z" />
 
     <!-- Green checkmark circle -->
     <path
-        android:fillColor="#4CAF50"
+        android:fillColor="#4CAF82"
         android:pathData="M65,72 m-14,0 a14,14 0,1 1,28 0 a14,14 0,1 1,-28 0" />
 
     <!-- White checkmark -->

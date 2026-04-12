@@ -104,9 +104,8 @@ fun InvoiceScreen(
                 title = {
                     Text(
                         text = androidx.compose.ui.text.buildAnnotatedString {
-                            withStyle(androidx.compose.ui.text.SpanStyle(color = Accent)) { append("Pay") }
-                            append("Un")
-                            withStyle(androidx.compose.ui.text.SpanStyle(color = Accent)) { append("paids") }
+                            append("Pay")
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = Accent)) { append("Unpaids") }
                         },
                         style = MaterialTheme.typography.headlineMedium,
                         modifier = Modifier.clickable {

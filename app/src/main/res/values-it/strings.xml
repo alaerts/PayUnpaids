@@ -1,0 +1,7 @@
+<resources>
+    <string name="settings_cd">Impostazioni</string>
+    <string name="easter_confirm">Fantastico!</string>
+    <string name="easter_crafted">Creato da Patrick Alaerts</string>
+    <string name="easter_assisted">Assistito da Claude Code</string>
+    <string name="easter_tagline">Recupera \u2192 Rivedi \u2192 Paga\nUn\'app, zero attriti.</string>
+</resources>
