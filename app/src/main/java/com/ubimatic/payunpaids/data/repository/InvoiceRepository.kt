@@ -195,41 +195,73 @@ class InvoiceRepository @Inject constructor(
                     ids = listOf(wizardId),
                     context = context,
                 )
-                Log.d(TAG, "Payment created for invoice $invoiceId, checking reconciliation...")
+                Log.d(TAG, "Payment created for invoice $invoiceId, reconciling...")
 
-                // Verify and force reconciliation if needed
-                val invoiceRecords = odooClient.searchRead(
-                    url, db, currentUid, apiKey,
-                    model = "account.move",
-                    domain = listOf(listOf("id", "=", invoiceId)),
-                    fields = listOf("payment_state"),
-                )
-                val paymentState = invoiceRecords.firstOrNull()?.get("payment_state")?.toString()
-                Log.d(TAG, "Invoice $invoiceId payment_state after wizard: $paymentState")
-
-                if (paymentState == "in_payment") {
-                    // Find the payment and force-reconcile
-                    val payments = odooClient.searchRead(
-                        url, db, currentUid, apiKey,
-                        model = "account.payment",
-                        domain = listOf(
-                            listOf("ref", "=", invoiceId.toString()),
-                        ),
-                        fields = listOf("id", "state", "move_id"),
-                    )
-                    Log.d(TAG, "Found ${payments.size} payments for invoice $invoiceId")
-                    // The payment was created and posted, but not reconciled
-                    // In Odoo, "in_payment" means the payment exists but bank statement
-                    // reconciliation hasn't happened. This is correct accounting behavior.
-                    // The invoice will become "paid" when the bank statement is imported.
-                    Log.d(TAG, "Invoice $invoiceId is in_payment — will become paid after bank reconciliation")
-                }
+                // Force reconciliation: find unreconciled move lines and reconcile them
+                reconcileInvoicePayment(currentUid, invoiceId)
             } else {
                 Log.w(TAG, "Could not create payment wizard for invoice $invoiceId")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to register payment for invoice $invoiceId: ${e.message}")
             throw e
+        }
+    }
+
+    /**
+     * After creating a payment, reconcile the outstanding move lines so the
+     * invoice transitions from "in_payment" to "paid".
+     */
+    private suspend fun reconcileInvoicePayment(currentUid: Int, invoiceId: Int) {
+        try {
+            // Find unreconciled payable/receivable lines on the invoice
+            val invoiceLines = odooClient.searchRead(
+                url, db, currentUid, apiKey,
+                model = "account.move.line",
+                domain = listOf(
+                    listOf("move_id", "=", invoiceId),
+                    listOf("account_type", "in", listOf("liability_payable", "asset_receivable")),
+                    listOf("reconciled", "=", false),
+                ),
+                fields = listOf("id"),
+            )
+            Log.d(TAG, "Invoice $invoiceId: ${invoiceLines.size} unreconciled lines")
+
+            if (invoiceLines.isEmpty()) {
+                Log.d(TAG, "Invoice $invoiceId already reconciled")
+                return
+            }
+
+            // Use js_assign_outstanding_line on the invoice to auto-match
+            // This finds the matching payment line and reconciles it
+            for (line in invoiceLines) {
+                val lineId = (line["id"] as? Int) ?: continue
+                try {
+                    odooClient.callMethod(
+                        url, db, currentUid, apiKey,
+                        model = "account.move",
+                        method = "js_assign_outstanding_line",
+                        ids = listOf(invoiceId),
+                        context = mapOf("line_id" to lineId),
+                    )
+                    Log.d(TAG, "Attempted reconciliation for line $lineId")
+                } catch (e: Exception) {
+                    Log.w(TAG, "js_assign_outstanding_line failed for line $lineId: ${e.message}")
+                }
+            }
+
+            // Verify final state
+            val result = odooClient.searchRead(
+                url, db, currentUid, apiKey,
+                model = "account.move",
+                domain = listOf(listOf("id", "=", invoiceId)),
+                fields = listOf("payment_state"),
+            )
+            val finalState = result.firstOrNull()?.get("payment_state")?.toString()
+            Log.d(TAG, "Invoice $invoiceId final payment_state: $finalState")
+        } catch (e: Exception) {
+            Log.w(TAG, "Reconciliation attempt failed for invoice $invoiceId: ${e.message}")
+            // Non-fatal: the payment was created, just not reconciled yet
         }
     }
 
